@@ -1,0 +1,2 @@
+useDynLib(PKI, PKI_load_DER_X509, PKI_verify_cert, PKI_cert_public_key)
+export(PKI.load.cert, PKI.verify, PKI.pubkey)
