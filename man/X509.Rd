@@ -1,7 +1,7 @@
 \name{X509}
 \alias{X509}
 \alias{PKI.load.cert}
-\alias{PKI.verify}
+\alias{PKI.verifyCA}
 \alias{PKI.pubkey}
 \title{
   Public Key Instraftructure (X509) functions
@@ -10,14 +10,14 @@
   \code{PKI.load.cert} creates a certificate obejct from a string,
   connection or file.
 
-  \code{PKI.verify} verifies a certificate against a given chain of
+  \code{PKI.verifyCA} verifies a certificate against a given chain of
   trust.
 
   \code{PKI.pubkey} extracts public key from a certificate.  
 }
 \usage{
 PKI.load.cert(what, format = "PEM", file)
-PKI.verify(certificate, ca)
+PKI.verifyCA(certificate, ca)
 PKI.pubkey(certificate)
 }
 \arguments{
@@ -36,7 +36,7 @@ PKI.pubkey(certificate)
 \value{
   \code{PKI.load.code}: a certificate object
 
-  \code{PKI.verify}: \code{TRUE} is the certificate can be trusted,
+  \code{PKI.verifyCA}: \code{TRUE} is the certificate can be trusted,
   \code{FALSE} otherwise
 
   \code{PKI.pubkey}: public key object
@@ -53,7 +53,7 @@ PKI.pubkey(certificate)
 \examples{
   ca <- PKI.load.cert(file=system.file("certs", "RForge-ca.crt", package="PKI"))
   my.cert <- PKI.load.cert(readLines(system.file("certs", "demo.crt", package="PKI")))
-  PKI.verify(my.cert, ca)
+  PKI.verifyCA(my.cert, ca)
   PKI.pubkey(my.cert)
 }
 \keyword{manip}

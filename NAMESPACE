@@ -1,2 +1,2 @@
-useDynLib(PKI, PKI_load_DER_X509, PKI_verify_cert, PKI_cert_public_key, PKI_encrypt, PKI_decrypt, PKI_load_private_RSA, PKI_RSAkeygen)
-export(PKI.load.cert, PKI.verify, PKI.pubkey, PKI.encrypt, PKI.decrypt, PKI.genRSAkey)
+useDynLib(PKI, PKI_load_DER_X509, PKI_verify_cert, PKI_cert_public_key, PKI_encrypt, PKI_decrypt, PKI_load_private_RSA, PKI_RSAkeygen, PKI_sign_RSA, PKI_verify_RSA, PKI_digest)
+export(PKI.load.cert, PKI.verifyCA, PKI.verify, PKI.sign, PKI.pubkey, PKI.encrypt, PKI.decrypt, PKI.genRSAkey, PKI.digest)

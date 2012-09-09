@@ -1,6 +1,8 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
+#include <openssl/sha.h>
+#include <openssl/md5.h>
 #include <openssl/x509.h>
 #include <string.h>
 
@@ -172,6 +174,92 @@ SEXP PKI_decrypt(SEXP what, SEXP sKey) {
     res = allocVector(RAWSXP, len);
     memcpy(RAW(res), buf, len);
     return res;
+}
+
+#define PKI_SHA1 1
+#define PKI_MD5  2
+
+SEXP PKI_digest(SEXP what, SEXP sMD) {
+    SEXP res;
+    unsigned char hash[32]; /* really, at most 20 bytes are needed */
+    int len, md = asInteger(sMD);
+    if (TYPEOF(what) != RAWSXP)
+	Rf_error("what must be a raw vector");
+    switch (md) {
+    case PKI_SHA1:
+	SHA1((const unsigned char*) RAW(what), LENGTH(what), hash);
+	len = SHA_DIGEST_LENGTH;
+	break;
+    case PKI_MD5:
+	MD5((const unsigned char*) RAW(what), LENGTH(what), hash);
+	len = MD5_DIGEST_LENGTH;
+	break;
+    default:
+	Rf_error("unsupported hash function");
+	len = 0; /* dead code but needed to appease compilers */
+    }
+    res = allocVector(RAWSXP, len);
+    memcpy(RAW(res), hash, len);
+    return res;
+}
+
+SEXP PKI_sign_RSA(SEXP what, SEXP sMD, SEXP sKey) {
+    SEXP res;
+    int md = asInteger(sMD);
+    EVP_PKEY *key;
+    RSA *rsa;
+    unsigned int siglen = sizeof(buf);
+    if (md != PKI_MD5 && md != PKI_SHA1)
+	Rf_error("unsupported hash type");
+    if (TYPEOF(what) != RAWSXP ||
+	(md == PKI_MD5 && LENGTH(what) != MD5_DIGEST_LENGTH) ||
+	(md == PKI_SHA1 && LENGTH(what) != SHA_DIGEST_LENGTH))
+	Rf_error("invalid hash");
+    if (!inherits(sKey, "private.key"))
+	Rf_error("key must be RSA private key");
+    key = (EVP_PKEY*) R_ExternalPtrAddr(sKey);
+    if (!key)
+	Rf_error("NULL key");
+    if (EVP_PKEY_type(key->type) != EVP_PKEY_RSA)
+	Rf_error("key must be RSA private key");
+    rsa = EVP_PKEY_get1_RSA(key);
+    if (!rsa)
+	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    if (RSA_sign((md == PKI_MD5) ? NID_md5 : NID_sha1,
+		 (const unsigned char*) RAW(what), LENGTH(what),
+		 (unsigned char *) buf, &siglen, rsa) != 1)
+	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    res = allocVector(RAWSXP, siglen);
+    memcpy(RAW(res), buf, siglen);
+    return res;
+}
+
+SEXP PKI_verify_RSA(SEXP what, SEXP sMD, SEXP sKey, SEXP sig) {
+    int md = asInteger(sMD);
+    EVP_PKEY *key;
+    RSA *rsa;
+    if (md != PKI_MD5 && md != PKI_SHA1)
+	Rf_error("unsupported hash type");
+    if (TYPEOF(what) != RAWSXP ||
+	(md == PKI_MD5 && LENGTH(what) != MD5_DIGEST_LENGTH) ||
+	(md == PKI_SHA1 && LENGTH(what) != SHA_DIGEST_LENGTH))
+	Rf_error("invalid hash");
+    if (!inherits(sKey, "public.key"))
+	Rf_error("key must be RSA public key");
+    key = (EVP_PKEY*) R_ExternalPtrAddr(sKey);
+    if (!key)
+	Rf_error("NULL key");
+    if (EVP_PKEY_type(key->type) != EVP_PKEY_RSA)
+	Rf_error("key must be RSA public key");
+    rsa = EVP_PKEY_get1_RSA(key);
+    if (!rsa)
+	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    return
+	ScalarLogical( /* FIXME: sig is not const in RSA_verify - that is odd so in theory in may modify sig ... */
+		      (RSA_verify((md == PKI_MD5) ? NID_md5 : NID_sha1,
+				  (const unsigned char*) RAW(what), LENGTH(what),
+				  (unsigned char *) RAW(sig), LENGTH(sig), rsa) == 1)
+		      ? TRUE : FALSE);
 }
 
 SEXP PKI_load_private_RSA(SEXP what) {
