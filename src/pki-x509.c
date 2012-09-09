@@ -1,6 +1,8 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
+#include <openssl/rsa.h>
 #include <openssl/x509.h>
+#include <string.h>
 
 #define USE_RINTERNALS 1
 #include <Rinternals.h>
@@ -88,10 +90,22 @@ SEXP PKI_verify_cert(SEXP sCA, SEXP sCert) {
     return ScalarLogical((rv == 1) ? TRUE : FALSE);
 }
 
-static SEXP wrap_EVP_PKEY(EVP_PKEY *key) {
+#define PKI_KT_PUBLIC  1
+#define PKI_KT_PRIVATE 2
+
+static SEXP wrap_EVP_PKEY(EVP_PKEY *key, int kt) {
     SEXP res = PROTECT(R_MakeExternalPtr(key, R_NilValue, R_NilValue));
     R_RegisterCFinalizerEx(res, PKI_free_EVP_PKEY, TRUE);
-    setAttrib(res, install("class"), mkString("public.key"));
+    if (kt == PKI_KT_PRIVATE || kt == PKI_KT_PUBLIC)
+	setAttrib(res, R_ClassSymbol,
+		  mkString((kt == PKI_KT_PUBLIC) ? "public.key" : "private.key"));
+    else {
+	SEXP cl = PROTECT(allocVector(STRSXP, 2));
+	SET_STRING_ELT(cl, 0, mkChar("public.key"));
+	SET_STRING_ELT(cl, 1, mkChar("private.key"));
+	setAttrib(res, R_ClassSymbol, cl);
+	UNPROTECT(1);
+    }
     /* FIXME: we don't have non-external payload for serialization */
     UNPROTECT(1);
     return res;
@@ -105,5 +119,142 @@ SEXP PKI_cert_public_key(SEXP sCert) {
     key = X509_get_pubkey(cert);
     if (!key)
 	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
-    return wrap_EVP_PKEY(key);
+    return wrap_EVP_PKEY(key, PKI_KT_PUBLIC);
 }
+
+static char buf[8192];
+
+SEXP PKI_encrypt(SEXP what, SEXP sKey) {
+    SEXP res;
+    EVP_PKEY *key;
+    RSA *rsa;
+    int len;
+    if (TYPEOF(what) != RAWSXP)
+	Rf_error("invalid payload to sign - must be a raw vector");
+    if (!inherits(sKey, "public.key"))
+	Rf_error("invalid key object");
+    key = (EVP_PKEY*) R_ExternalPtrAddr(sKey);
+    if (!key)
+	Rf_error("NULL key");
+    if (EVP_PKEY_type(key->type) != EVP_PKEY_RSA)
+	Rf_error("Sorry only RSA keys are supported at this point");
+    rsa = EVP_PKEY_get1_RSA(key);
+    if (!rsa)
+	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    len = RSA_public_encrypt(LENGTH(what), RAW(what), (unsigned char*) buf, rsa, RSA_PKCS1_PADDING);
+    if (len < 0)
+	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    res = allocVector(RAWSXP, len);
+    memcpy(RAW(res), buf, len);
+    return res;
+}
+
+SEXP PKI_decrypt(SEXP what, SEXP sKey) {
+    SEXP res;
+    EVP_PKEY *key;
+    RSA *rsa;
+    int len;
+    if (TYPEOF(what) != RAWSXP)
+	Rf_error("invalid payload to sign - must be a raw vector");
+    if (!inherits(sKey, "private.key"))
+	Rf_error("invalid key object");
+    key = (EVP_PKEY*) R_ExternalPtrAddr(sKey);
+    if (!key)
+	Rf_error("NULL key");
+    if (EVP_PKEY_type(key->type) != EVP_PKEY_RSA)
+	Rf_error("Sorry only RSA keys are supported at this point");
+    rsa = EVP_PKEY_get1_RSA(key);
+    if (!rsa)
+	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    len = RSA_private_decrypt(LENGTH(what), RAW(what), (unsigned char*) buf, rsa, RSA_PKCS1_PADDING);
+    if (len < 0)
+	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    res = allocVector(RAWSXP, len);
+    memcpy(RAW(res), buf, len);
+    return res;
+}
+
+SEXP PKI_load_private_RSA(SEXP what) {
+    EVP_PKEY *key;
+    RSA *rsa = 0;
+    const unsigned char *ptr;
+    if (TYPEOF(what) != RAWSXP)
+	Rf_error("key must be a raw vector");
+    ptr = (const unsigned char *) RAW(what);
+    rsa = d2i_RSAPrivateKey(&rsa, &ptr, LENGTH(what));
+    if (!rsa)
+	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    key = EVP_PKEY_new();
+    EVP_PKEY_assign_RSA(key, rsa);
+    return wrap_EVP_PKEY(key, PKI_KT_PRIVATE);
+}
+
+SEXP PKI_RSAkeygen(SEXP sBits) {
+    EVP_PKEY *key;
+    RSA *rsa;
+    int bits = asInteger(sBits);
+    if (bits < 512)
+	Rf_error("invalid key size");
+    rsa = RSA_generate_key(bits, 65537, 0, 0);
+    if (!rsa)
+	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    key = EVP_PKEY_new();
+    EVP_PKEY_assign_RSA(key, rsa);
+    return wrap_EVP_PKEY(key, PKI_KT_PRIVATE | PKI_KT_PUBLIC);
+}
+
+#if 0 /* FIXME: this requires openssl 1.0 or higher - not acceptable at this point */
+
+#define PKI_MD5    1
+#define PKI_SHA1   2
+#define PKI_SHA256 3
+
+#define PKI_PKCS1  1
+/*#define PKI_ */
+
+SEXP PKI_sign(SEXP what, SEXP sKey, SEXP sMD, SEXP sPad) {
+    SEXP res;
+    EVP_PKEY *key;
+    EVP_PKEY_CTX *ctx;
+    int mdt, padt, r;
+    size_t sl;
+    if (TYPEOF(what) != RAWSXP)
+	Rf_error("invalid payload to sign - must be a raw vector");
+    if (!inherits(sKey, "public.key"))
+	Rf_error("invalid key object");
+    mdt = asInteger(sMD);
+    padt = asInteger(sPad);
+    key = (EVP_PKEY*) R_ExternalPtrAddr(sKey);
+    if (!key)
+	Rf_error("NULL key");
+    ctx = EVP_PKEY_CTX_new(key);
+    if (!ctx || EVP_PKEY_sign_init(ctx) <= 0)
+	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    switch (padt) {
+    case PKI_PKCS1:
+    default:
+	r = EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING);
+    }
+    if (r <= 0)
+	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    switch (mdt) {
+    case PKI_MD5:
+	r = EVP_PKEY_CTX_set_signature_md(ctx, EVP_md5()); break;
+    case PKI_SHA1:
+	r = EVP_PKEY_CTX_set_signature_md(ctx, EVP_sha1()); break;
+    default:
+    case PKI_SHA256:
+	r = EVP_PKEY_CTX_set_signature_md(ctx, EVP_sha256()); break;
+    }	
+    if (r <= 0)
+	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    sl = sizeof(buf);
+    if (EVP_PKEY_sign(ctx, buf, &sl, (const unsigned char*) RAW(what), LENGTH(what)) <= 0)
+	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    res = allocVector(RAWSXP, sl);
+    memcpy(RAW(res), buf, sl);
+    EVP_PKEY_CTX_free(ctx);
+    return res;
+}
+
+#endif
