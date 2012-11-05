@@ -1,9 +1,4 @@
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/rsa.h>
-#include <openssl/sha.h>
-#include <openssl/md5.h>
-#include <openssl/x509.h>
+#include "pki.h"
 #include <string.h>
 
 #define USE_RINTERNALS 1

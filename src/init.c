@@ -1,5 +1,4 @@
-#include <openssl/ssl.h>
-#include <openssl/err.h>
+#include "pki.h"
 
 static int ssl_needs_init = 1;
 

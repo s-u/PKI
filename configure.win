@@ -1,0 +1,51 @@
+#!/bin/sh
+
+echo "  checking openssl headers and libraries"
+allok=yes
+
+if [ -e "${LOCAL_SOFT}/include/openssl/ssl.h" ]; then
+    echo " --- Using local version of openssl found in LOCAL_SOFT: ${LOCAL_SOFT}"
+    echo " --- Proceed at your own risk, if in doubt unset LOCAL_SOFT to use our binary."
+    exit 0
+fi
+
+if [ ! -e src/win32/libssl.a ]; then
+    if [ ! -e src/openssl-current-win.tar.gz ]; then
+	echo "  cannot find current openssl files"
+	echo "  attempting to download them"
+	echo 'download.file("http://www.rforge.net/PKI/files/openssl-current-win.tar.gz","src/openssl-current-win.tar.gz",mode="wb",quiet=TRUE)'|${R_HOME}/bin/R --vanilla --slave
+    fi
+    if [ ! -e src/openssl-current-win.tar.gz ]; then
+	allok=no
+    else
+	echo "  unpacking current openssl"
+	tar fxz src/openssl-current-win.tar.gz -C src
+        if [ ! -e src/win32/libssl.a ]; then
+	    allok=no
+	fi
+    fi
+fi
+
+if [ ! -e src/win32/libssl.a ]; then
+    allok=no
+fi
+
+if [ ${allok} != yes ]; then
+    echo ""
+    echo " *** ERROR: unable to find openssl files"
+    echo ""
+    echo " They must be either in src/win32 or in a tar-ball"
+    echo " src/openssl-current-win.tar.gz"
+    echo ""
+    echo " You can get the latest binary tar ball from"
+    echo " http://www.rforge.net/PKI/files/"
+    echo ""
+    echo " Alternatively you can set LOCAL_SOFT environment variable"
+    echo " to point to the prefix (like /usr/local) containing openssl binaries."
+    echo ""
+    exit 1
+fi
+
+echo "  seems ok, ready to go"
+
+exit 0

@@ -1,0 +1,7 @@
+ifeq ($(WIN),64)
+PKG_LIBS = -Lwin64 -lssl -lcrypto -lws2_32 -lgdi32 -lcrypt32
+PKG_CPPFLAGS = -Iwin64
+else
+PKG_LIBS = -Lwin32 -lssl -lcrypto -lws2_32 -lgdi32 -lcrypt32
+PKG_CPPFLAGS = -Iwin32
+endif
