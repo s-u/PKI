@@ -4,6 +4,16 @@
 #define USE_RINTERNALS 1
 #include <Rinternals.h>
 
+/* NOTE: we use d2i_RSAPrivateKey but s2i_RSA_PUBKEY (instead of
+         s2i_RSAPublicKey) because that is what OpenSSL uses as
+	 well. PUBKEY is on X509 SubjectPublicKeyInfo format
+	 while RSAPublicKey is in PKCS#1 format. The difference
+	 in PEM files is "PUBLIC KEY" for X509 and
+	 "RSA PUBLIC KEY" for the other. Note that OpenSSL on
+	 the command line doesn't even support loading PEM
+	 with RSA PUBLIC KEY, that's why we don't even offer it
+	 as an option. */
+
 /* from init.c */
 void PKI_init();
 
@@ -108,6 +118,53 @@ static SEXP wrap_EVP_PKEY(EVP_PKEY *key, int kt) {
     return res;
 }
 
+SEXP PKI_extract_key(SEXP sKey, SEXP sPriv) {
+    SEXP res;
+    EVP_PKEY *key;
+    RSA *rsa;
+    int get_priv = asInteger(sPriv), len;
+    if (!inherits(sKey, "public.key") && !inherits(sKey, "private.key"))
+	Rf_error("invalid key object");
+    if (get_priv == NA_INTEGER)
+	get_priv = inherits(sKey, "private.key");
+    if (get_priv && !inherits(sKey, "private.key"))
+	return R_NilValue;
+    key = (EVP_PKEY*) R_ExternalPtrAddr(sKey);
+    if (!key)
+	Rf_error("NULL key");
+    if (EVP_PKEY_type(key->type) != EVP_PKEY_RSA)
+	Rf_error("Sorry only RSA keys are supported at this point");
+    rsa = EVP_PKEY_get1_RSA(key);
+    if (get_priv) {
+	unsigned char *ptr;
+	len = i2d_RSAPrivateKey(rsa, 0);
+	if (len < 1)
+	    Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+	res = allocVector(RAWSXP, len);
+	ptr = (unsigned char*) RAW(res);
+	len = i2d_RSAPrivateKey(rsa, &ptr);
+	if (len < 1)
+	    Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+	PROTECT(res);
+	setAttrib(res, R_ClassSymbol, mkString("private.key.DER"));
+	UNPROTECT(1);
+    } else {
+	unsigned char *ptr;
+	len = i2d_RSA_PUBKEY(rsa, 0);
+	if (len < 1)
+	    Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+	res = allocVector(RAWSXP, len);
+	ptr = (unsigned char*) RAW(res);
+	len = i2d_RSA_PUBKEY(rsa, &ptr);
+	if (len < 1)
+	    Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+	PROTECT(res);
+	setAttrib(res, R_ClassSymbol, mkString("public.key.DER"));
+	UNPROTECT(1);
+    }
+    return res;
+}
+
 SEXP PKI_cert_public_key(SEXP sCert) {
     X509 *cert;
     EVP_PKEY *key;
@@ -128,7 +185,7 @@ SEXP PKI_encrypt(SEXP what, SEXP sKey) {
     int len;
     if (TYPEOF(what) != RAWSXP)
 	Rf_error("invalid payload to sign - must be a raw vector");
-    if (!inherits(sKey, "public.key"))
+    if (!inherits(sKey, "public.key") && !inherits(sKey, "private.key"))
 	Rf_error("invalid key object");
     key = (EVP_PKEY*) R_ExternalPtrAddr(sKey);
     if (!key)
@@ -270,6 +327,21 @@ SEXP PKI_load_private_RSA(SEXP what) {
     key = EVP_PKEY_new();
     EVP_PKEY_assign_RSA(key, rsa);
     return wrap_EVP_PKEY(key, PKI_KT_PRIVATE);
+}
+
+SEXP PKI_load_public_RSA(SEXP what) {
+    EVP_PKEY *key;
+    RSA *rsa = 0;
+    const unsigned char *ptr;
+    if (TYPEOF(what) != RAWSXP)
+	Rf_error("key must be a raw vector");
+    ptr = (const unsigned char *) RAW(what);
+    rsa = d2i_RSA_PUBKEY(&rsa, &ptr, LENGTH(what));
+    if (!rsa)
+	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    key = EVP_PKEY_new();
+    EVP_PKEY_assign_RSA(key, rsa);
+    return wrap_EVP_PKEY(key, PKI_KT_PUBLIC);
 }
 
 SEXP PKI_RSAkeygen(SEXP sBits) {
