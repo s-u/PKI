@@ -12,7 +12,11 @@ NEWS for PKI package
 	from modulus and exponent alone
 
     o	add support for OpenSSH public key format
-	(as used in .ssh/authorized_keys flies)
+	(as used in .ssh/authorized_keys files)
+	as well as pure PKCS#1 and SSH2 PEMs
+
+    o	make PEM parsing more robust to support
+	headers
 
     o	add raw2hex() function to convert raw hashes
 	into string format

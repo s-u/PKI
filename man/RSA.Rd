@@ -77,6 +77,8 @@ PKI.load.OpenSSH.pubkey(what, first=TRUE, format = c("DER", "PEM", "key"))
   convention.
 
   The OpenSSH format is one line beginning with \code{"ssh-rsa "}.
+  SSH2 PEM public keys (rfc4716) are supported in \code{PKI.load.key} and the
+  binary payload is the same as the OpenSSH, only with different wrapping.
 }
 \seealso{\code{\link{PKI.encrypt}}, \code{\link{PKI.decrypt}}, \code{\link{PKI.pubkey}}}
 \examples{

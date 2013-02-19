@@ -1,3 +1,21 @@
+## Notes on key formats:
+##
+## PKCS#1: (BEGIN RSA PUBLIC KEY) - RFC 3447
+##  public key : ASN.1 SEQ(modulus (n) INT, publicExponent (e) INT)
+##  private key: ver, n, e, d, p, q, d mod (p-1), d mod (q-1), (inv q) mod p [,other primes]
+##
+## X.509 SubjectPublicKeyInfo (BEGIN PUBLIC KEY) - RFC 1422
+##  SEQ(AlgorithmIdentifier:SEQ(OID, param[NULL]), BIT-STR(key - as defined in PKCS#1))
+##
+## SSH2: (BEGIN SSH2 PUBLIC KEY) - RFC 4716
+##  int32 n, char[n] type "ssh-rsa", int32 n, byte[n] exponent, int32 n, byte[n] modulus (all big-endian)
+## OpenSSH uses same format but on one line with 'ssh-rsa ' prefix
+
+
+## pkcs-1 1 OID: iso(1) member-body(2) us(840) rsadsi(113549) pkcs(1) 1
+##  (pkcs-1 1) = rsaEncryption (RFC 3447) --- for use in SubjectPublicKeyInfo
+oid.pkcs.1.rsaEncryption <- as.raw(c(0x2a,0x86,0x48,0x86,0xf7,0x0d,1,1,1))
+
 PKI.load.key <- function(what, format=c("PEM", "DER"), private, file) {
     if (!missing(file) && !missing(what)) stop("what and file are mutually exclusive")
     format <- match.arg(format)
@@ -12,6 +30,9 @@ PKI.load.key <- function(what, format=c("PEM", "DER"), private, file) {
     if (inherits(what, "connection"))
         what <- if (bin) readBin(what, raw(), 65536L) else readLines(what)
     if (is.character(what)) {
+        ## remove any lines containing : or ending in \ which are headers
+        rm.ln <- which(grepl(":", what, fixed=TRUE) | grepl("\\\\$", what))
+        if (length(rm.ln)) what <- what[-rm.ln]
         if (either || private) {
             i <- grep("-BEGIN RSA PRIVATE KEY-", what, fixed=TRUE)
             j <- grep("-END RSA PRIVATE KEY-", what, fixed=TRUE)
@@ -28,11 +49,27 @@ PKI.load.key <- function(what, format=c("PEM", "DER"), private, file) {
             j <- grep("-END PUBLIC KEY-", what, fixed=TRUE)
             if (length(i) >= 1L && length(j) >= 1L && i[1] < j[1])
                 what <- base64enc::base64decode(what[(i + 1L):(j - 1L)])
-            else {
-                if (either)
-                    stop("cannot find either public or private RSA key in PEM format")
-                else
-                    stop("cannot find public RSA key in PEM format")
+            else { ## also support PKCS#1 format
+                i <- grep("-BEGIN RSA PUBLIC KEY-", what, fixed=TRUE)
+                j <- grep("-END RSA PUBLIC KEY-", what, fixed=TRUE)
+                if (length(i) >= 1L && length(j) >= 1L && i[1] < j[1]) {
+                    what <- base64enc::base64decode(what[(i + 1L):(j - 1L)])
+                    # wrap the PKCS#1 in X.509 SubjectPublicKeyInfo
+                    what <- ASN1.encode(list(list(ASN1.item(oid.pkcs.1.rsaEncryption, 6L),
+                                                  ASN1.item(raw(0), 5L)),
+                                             ASN1.item(what, 3L)))
+                } else { ## also support SSH2 format
+                    i <- grep("-- BEGIN SSH2 PUBLIC KEY --", what, fixed=TRUE)
+                    j <- grep("-- END SSH2 PUBLIC KEY --", what, fixed=TRUE)
+                    if (length(i) >= 1L && length(j) >= 1L && i[1] < j[1])
+                        return(PKI.decode.SSH2(base64enc::base64decode(what[(i + 1L):(j - 1L)]), "key", FALSE))
+                    else {
+                        if (either)
+                            stop("cannot find either public or private RSA key in PEM format")
+                        else
+                            stop("cannot find public RSA key in PEM format")
+                    }
+                }
             }
         }
     }
@@ -94,12 +131,29 @@ PKI.mkRSApubkey <- function(modulus, exponent=65537L, format = c("DER", "PEM", "
   format <- match.arg(format)
   if (inherits(modulus, "bigz") || !is.raw(modulus)) modulus <- as.BIGNUMint(modulus)
   if (inherits(exponent, "bigz") || !is.raw(exponent)) exponent <- as.BIGNUMint(exponent)
-  der <- ASN1.encode(list(list(ASN1.item(as.raw(c(0x2a,0x86,0x48,0x86,0xf7,0x0d,1,1,1)), 6L),
+  der <- ASN1.encode(list(list(ASN1.item(oid.pkcs.1.rsaEncryption, 6L),
                                ASN1.item(raw(0), 5L)),
                           ASN1.item(ASN1.encode(list(ASN1.item(modulus, 2L), ASN1.item(exponent, 2L))), 3L)))
   if (format == "DER") return(der)
   if (format == "PEM") return(c("-----BEGIN PUBLIC KEY-----", base64enc::base64encode(der, 64), "-----END PUBLIC KEY-----"))
   .Call(PKI_load_public_RSA, der)
+}
+
+## not exported - decode raw vector containg ssh-rsa key
+PKI.decode.SSH2 <- function(what, format, silent=TRUE) {
+  c <- rawConnection(what, "rb")
+  l <- readBin(c, 1L, endian="big")
+  s <- rawToChar(readBin(c, raw(), l))
+  if (!isTRUE(s == "ssh-rsa")) {
+    if (isTRUE(silent)) return(NULL)
+    stop("unsupported SSH2 public key - expected ssh-rsa, found ", s)
+  }
+  l <- readBin(c, 1L, endian="big")
+  exp <- readBin(c, raw(), l)
+  l <- readBin(c, 1L, endian="big")
+  mod <- readBin(c, raw(), l)
+  close(c)
+  PKI.mkRSApubkey(mod, exp, format=format)
 }
 
 PKI.load.OpenSSH.pubkey <- function(what, first=TRUE, format = c("DER", "PEM", "key")) {
@@ -109,17 +163,7 @@ PKI.load.OpenSSH.pubkey <- function(what, first=TRUE, format = c("DER", "PEM", "
   if (length(what)) {
     if (isTRUE(first) && length(what) > 1L)
       what <- what[1L]
-    keys <- lapply(strsplit(what, " "), function(ln) {
-      c <- rawConnection(base64decode(ln[2]), "rb")
-      l <- readBin(c, 1L, endian="big")
-      s <- rawToChar(readBin(c, raw(), l))
-      l <- readBin(c, 1L, endian="big")
-      exp <- readBin(c, raw(), l)
-      l <- readBin(c, 1L, endian="big")
-      mod <- readBin(c, raw(), l)
-      close(c)
-      PKI.mkRSApubkey(mod, exp, format=format)
-    })
+    keys <- lapply(strsplit(what, " "), function(ln) PKI.decode.SSH2(base64enc::base64decode(ln[2]), format))
     if (isTRUE(first))
       keys[[1]]
     else

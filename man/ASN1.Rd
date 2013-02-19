@@ -86,6 +86,7 @@ x
 # the second element is the actual key
 # as a bit string that's itself in DER
 # two integers - modulus and exponent
+# Note that this is in fact the pure PKCS#1 key format
 ASN1.decode(x[[2]])
 
 # encoding it back should yield the same representation since it is DER
