@@ -11,6 +11,9 @@ NEWS for PKI package
     o	added PKI.mkRSApubkey() to create RSA public keys
 	from modulus and exponent alone
 
+    o	add support for OpenSSH public key format
+	(as used in .ssh/authorized_keys flies)
+
     o	add raw2hex() function to convert raw hashes
 	into string format
 

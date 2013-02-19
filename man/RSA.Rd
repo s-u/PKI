@@ -4,6 +4,7 @@
 \alias{PKI.load.key}
 \alias{PKI.save.key}
 \alias{PKI.mkRSApubkey}
+\alias{PKI.load.OpenSSH.pubkey}
 \title{
   PKI functions handling RSA keys 
 }
@@ -16,12 +17,16 @@
 
   \code{PKI.mkRSApubkey} creates a RSA public key with the supplied
   modulus and exponent.
+
+  \code{PKI.load.OpenSSH.pubkey} loads public key in OpenSSH format
+  (as used in \code{.ssh/authorized_keys} file)
 }
 \usage{
 PKI.load.key(what, format = c("PEM", "DER"), private, file)
 PKI.save.key(key, format = c("PEM", "DER"), private, target)
 PKI.genRSAkey(bits = 2048L)
 PKI.mkRSApubkey(modulus, exponent=65537L, format = c("DER", "PEM", "key"))
+PKI.load.OpenSSH.pubkey(what, first=TRUE, format = c("DER", "PEM", "key"))
 }
 \arguments{
   \item{what}{string, raw vector or connection to load the key from}
@@ -43,6 +48,8 @@ PKI.mkRSApubkey(modulus, exponent=65537L, format = c("DER", "PEM", "key"))
   \item{exponent}{exponent either as a raw vector (see
     \code{\link{as.BIGNUMint}}) or \code{bigz} object (from \code{gmp}
     package) or an integer.}
+  \item{first}{logical, if \code{TRUE} only the first key will be used,
+    otherwise the result is a list of keys.}
 }
 %\details{
 %}
@@ -54,8 +61,9 @@ PKI.mkRSApubkey(modulus, exponent=65537L, format = c("DER", "PEM", "key"))
   
   \code{PKI.genRSAkey}: private + public key object
 
-  \code{PKI.mkRSApubkey}: raw vector (DER format) or character vector (PEM
-  format) or a \code{"public.key"} object.
+  \code{PKI.mkRSApubkey}, \code{PKI.load.OpenSSH.pubkey}: raw vector
+  (DER format) or character vector (PEM format) or a \code{"public.key"}
+  object.
 }
 %\references{
 %}
@@ -67,6 +75,8 @@ PKI.mkRSApubkey(modulus, exponent=65537L, format = c("DER", "PEM", "key"))
   is X.509 SubjectPublicKeyInfo (certificate public key). This is
   consistent with OpenSSL RSA command line tool which uses the same
   convention.
+
+  The OpenSSH format is one line beginning with \code{"ssh-rsa "}.
 }
 \seealso{\code{\link{PKI.encrypt}}, \code{\link{PKI.decrypt}}, \code{\link{PKI.pubkey}}}
 \examples{
@@ -86,5 +96,8 @@ rawToChar(PKI.decrypt(x, key))
 
 # compute SHA1 hash (fingerprint) of the public key
 PKI.digest(PKI.save.key(key, "DER", private=FALSE))
+
+# convert OpenSSH public key to PEM format
+PKI.load.OpenSSH.pubkey("ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEAuvOXqfZ3pJeWeqyQOIXZwmgM1RBqPUmVx3XgntpA+YtOZjKfuoJSpg3LhBuI/wXx8L2QZXNFibvX4qX2qoYsbHvkz2uonA3F7HRhCR/BJURR5nT135znVqALZo328v86HDsVWYR2/JzY1X8GI2R2iKUMGXF0hVuRphdwLB735CU= foo@mycomputer", format="PEM")
 }
 \keyword{manip}

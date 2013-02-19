@@ -101,3 +101,28 @@ PKI.mkRSApubkey <- function(modulus, exponent=65537L, format = c("DER", "PEM", "
   if (format == "PEM") return(c("-----BEGIN PUBLIC KEY-----", base64enc::base64encode(der, 64), "-----END PUBLIC KEY-----"))
   .Call(PKI_load_public_RSA, der)
 }
+
+PKI.load.OpenSSH.pubkey <- function(what, first=TRUE, format = c("DER", "PEM", "key")) {
+  format <- match.arg(format)
+  if (inherits(what, "connection")) what <- readLines(what)
+  what <- what[grep("^ssh-rsa ", what)]
+  if (length(what)) {
+    if (isTRUE(first) && length(what) > 1L)
+      what <- what[1L]
+    keys <- lapply(strsplit(what, " "), function(ln) {
+      c <- rawConnection(base64decode(ln[2]), "rb")
+      l <- readBin(c, 1L, endian="big")
+      s <- rawToChar(readBin(c, raw(), l))
+      l <- readBin(c, 1L, endian="big")
+      exp <- readBin(c, raw(), l)
+      l <- readBin(c, 1L, endian="big")
+      mod <- readBin(c, raw(), l)
+      close(c)
+      PKI.mkRSApubkey(mod, exp, format=format)
+    })
+    if (isTRUE(first))
+      keys[[1]]
+    else
+      keys
+  } else list()
+}
