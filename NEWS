@@ -1,0 +1,13 @@
+NEWS for PKI package
+
+0.1-1	(under development)
+    o	add ASN.1 tools to parse and synthesize ASN.1
+	formatted objects - mostly for use in key format
+	conversions
+
+    o	add raw2hex() function to convert raw hashes
+	into string format
+
+0.1-0	2012-11-05
+    o	first public release
+
