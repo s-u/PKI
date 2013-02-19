@@ -1,7 +1,21 @@
 NEWS for PKI package
 
-0.1-1	(under development)
-    o	add ASN.1 tools to parse and synthesize ASN.1
+0.1-1	2013-02-19
+    o	added PKI.load.key() and PKI.save.key()
+	functions to load/save keys from/to PEM and DER formats
+
+	IMPORTANT API NOTE: PKI.load.key() replaces the
+	(unexported) function PKI.load.privkey()
+	in the previous PKI version.
+
+    o	added support for OpenSSH public key format
+	(as used in .ssh/authorized_keys files)
+	as well as pure PKCS#1 and SSH2 PEMs
+
+    o	make PEM parsing more robust to support
+	headers
+
+    o	added ASN.1 tools to parse and synthesize ASN.1
 	formatted objects - mostly for use in key format
 	conversions
 
@@ -11,14 +25,7 @@ NEWS for PKI package
     o	added PKI.mkRSApubkey() to create RSA public keys
 	from modulus and exponent alone
 
-    o	add support for OpenSSH public key format
-	(as used in .ssh/authorized_keys files)
-	as well as pure PKCS#1 and SSH2 PEMs
-
-    o	make PEM parsing more robust to support
-	headers
-
-    o	add raw2hex() function to convert raw hashes
+    o	added raw2hex() function to convert raw hashes
 	into string format
 
 0.1-0	2012-11-05

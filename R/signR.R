@@ -12,13 +12,12 @@ tar1 <- function(name, what, mode=0x180) {
     checksum <- sum(as.integer(header))%%2^24
     header[149:154] <- charToRaw(sprintf("%06o", as.integer(checksum)))
     header[155L] <- as.raw(0L)
-    header
     bsize <- ceiling(size / 512L) * 512L
     padding <- raw(bsize - size)
     c(header, what, padding)
 }
 
-PKI.sign.tar <- function(tarfile, key, certificate, verify=TRUE) {
+PKI.sign.tar <- function(tarfile, key, certificate, verify=TRUE, output=tarfile) {
     io <- file
     file <- file(tarfile, "rb")
     on.exit(if (!is.null(file)) close(file))
@@ -35,5 +34,24 @@ PKI.sign.tar <- function(tarfile, key, certificate, verify=TRUE) {
     chunk <- 4194304L ## 4Mb .. as good as any value ...
     payload <- raw(0)
     while (length(r <- readBin(file, raw(), chunk))) payload <- c(payload, r)
-    
+    close(file)
+#   FIXME: if we want the .signature to be visible, we need to strip padding to inject new file !
+    file <- NULL
+    sign <- PKI.sign(payload, key, "SHA1")
+    ## SEQ(BIT STREAM sig, subjectPubKeyInfo[if not cert], cert[optional, if present])
+    a <- if (missing(certificate)) 
+        ASN1.encode(list(ASN1.item(sign, 3L), ASN1.decode(PKI.save.key(key, "DER", FALSE))))
+    else
+        ASN1.encode(list(ASN1.item(sign, 3L), ASN1.item(raw(0), 0L), ASN1.decode(attr(certificate, "crt.DER"))))
+    payload <- c(payload, tar1(".signature", a), as.raw(rep(0L, 1024L)))
+    if (inherits(output, "connection")) {
+        writeBin(payload, output)
+        return(output)
+    }
+    if (is.raw(output)) return(payload)
+    file <- io(as.character(output), "wb")
+    writeBin(payload, file)
+    close(file)
+    file <- NULL
+    output
 }
