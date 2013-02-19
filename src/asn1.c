@@ -22,11 +22,11 @@ static SEXP decode_ASN1_bytes(unsigned char *d, unsigned int l, unsigned int *pt
 	}
 	if (i + len > l)
 	    Rf_error("truncated ASN.1 object");
-	/* printf(" %p: type 0x%02x len %d\n", d, cl, len); */
+	/* Rprintf(" %p: type 0x%02x len %d\n", d, cl, len); */
 	if (cl == 0x30) { /* sequence */
 	    SEXP rl = R_NilValue, tl = R_NilValue, res;
 	    unsigned int si = i, n = 0;
-	    while (i < len) {
+	    while (i - si < len) {
 		unsigned int i_off = 0;
 		SEXP v = decode_ASN1_bytes(d + i, si + len - i, &i_off);
 		i += i_off;
