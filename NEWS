@@ -1,5 +1,7 @@
 NEWS for PKI package
 
+0.1-2	(under development)
+
 0.1-1	2013-02-19
     o	added PKI.load.key() and PKI.save.key()
 	functions to load/save keys from/to PEM and DER formats
