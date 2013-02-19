@@ -89,3 +89,15 @@ PKI.verify <- function(what, signature, key, hash=c("SHA1", "MD5"), digest) {
   if (is.na(hash)) stop("invalid hash specification")
   .Call(PKI_verify_RSA, digest, hash, key, signature)
 }
+
+PKI.mkRSApubkey <- function(modulus, exponent=65537L, format = c("DER", "PEM", "key")) {
+  format <- match.arg(format)
+  if (inherits(modulus, "bigz") || !is.raw(modulus)) modulus <- as.BIGNUMint(modulus)
+  if (inherits(exponent, "bigz") || !is.raw(exponent)) exponent <- as.BIGNUMint(exponent)
+  der <- ASN1.encode(list(list(ASN1.item(as.raw(c(0x2a,0x86,0x48,0x86,0xf7,0x0d,1,1,1)), 6L),
+                               ASN1.item(raw(0), 5L)),
+                          ASN1.item(ASN1.encode(list(ASN1.item(modulus, 2L), ASN1.item(exponent, 2L))), 3L)))
+  if (format == "DER") return(der)
+  if (format == "PEM") return(c("-----BEGIN PUBLIC KEY-----", base64enc::base64encode(der, 64), "-----END PUBLIC KEY-----"))
+  .Call(PKI_load_public_RSA, der)
+}

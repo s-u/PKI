@@ -4,6 +4,7 @@ Title: Public Key Infrastucture for R based on the X.509 standard
 Author: Simon Urbanek <Simon.Urbanek@r-project.org>
 Maintainer: Simon Urbanek <Simon.Urbanek@r-project.org>
 Depends: R (>= 2.9.0), base64enc
+Enhances: gmp
 Description: This package provides PKI functions such as verifyig certificates, RSA encription and signing which can be used to build PKI infrastructure and perform cryptographic tasks.
 License: GPL-2 | GPL-3
 URL: http://www.rforge.net/PKI

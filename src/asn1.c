@@ -174,3 +174,98 @@ SEXP encode_ASN1(SEXP sWhat) {
     UNPROTECT(1);
     return res;
 }
+
+static SEXP bigz2bignum(const unsigned int *bz) {
+    SEXP res = allocVector(RAWSXP, 1 + bz[0] * 4);
+    unsigned char *c = (unsigned char *) RAW(res);
+    unsigned int i;
+    *(c++) = 0; /* we may need a leading zero */
+    /* FIXME: we handle only positive numbers */
+    for (i = 2; i < bz[0] + 2; i++) {
+	*(c++) = bz[i] >> 24;
+	*(c++) = (bz[i] >> 16) & 255;
+	*(c++) = (bz[i] >> 8) & 255;
+	*(c++) = bz[i] & 255;
+    }
+    c = (unsigned char*) RAW(res);
+    for (i = 0; i < LENGTH(res); i++)
+	if (c[i]) break;
+    if (c[i] > 127) i--;
+    if (i > 0) {
+	memmove(c, c + i, LENGTH(res) - i);
+	SETLENGTH(res, LENGTH(res) - i);
+    }
+    return res;
+}
+
+static SEXP long2bignum(unsigned long v) {
+    unsigned char buf[9], *c = buf + 8;
+    SEXP res;
+    if (v < 128) {
+	SEXP res = allocVector(RAWSXP, 1);
+	RAW(res)[0] = v;
+	return res;
+    }
+    while (v) {
+	*(c--) = (unsigned char) v;
+	v >>= 8;
+    }
+    if (c[1] < 128) c++; /* move back if leading zero is not needed */
+    res = allocVector(RAWSXP, buf + 9 - c);
+    memcpy(RAW(res), c, LENGTH(res));
+    return res;
+}
+
+SEXP PKI_asBIGNUMint(SEXP sWhat, SEXP sScalar) {
+    int scalar = asInteger(sScalar) == TRUE;
+    if (inherits(sWhat, "bigz")) {
+	const unsigned int *bz;
+	if (TYPEOF(sWhat) != RAWSXP || LENGTH(sWhat) < 4)
+	    Rf_error("invalid bigz format");
+	bz = (const unsigned int*) RAW(sWhat);
+	if (scalar) {
+	    if (bz == 0) Rf_error("attempt to use zero-length vector as scalar");
+	    return bigz2bignum(bz + 1);
+	} else {
+	    SEXP res = PROTECT(allocVector(VECSXP, bz[0]));
+	    unsigned int i, j = 1;
+	    for (i = 0; i < bz[0]; i++) {
+		SET_VECTOR_ELT(res, i, bigz2bignum(bz + j));
+		j += bz[j] + 1;
+	    }
+	    UNPROTECT(1);
+	    return res;
+	}
+    }
+    if (TYPEOF(sWhat) == REALSXP) {	
+	if (scalar) {
+	    if (!LENGTH(sWhat)) Rf_error("attempt to use zero-length vector as scalar");
+	    return long2bignum((unsigned long) asReal(sWhat));
+	} else {
+	    unsigned int i, n = LENGTH(sWhat);
+	    SEXP res = PROTECT(allocVector(VECSXP, n));
+	    const double *d = REAL(sWhat);
+	    for (i = 0; i < n; i++)
+		SET_VECTOR_ELT(res, i, long2bignum((unsigned long) d[i]));
+	    UNPROTECT(1);
+	    return res;
+	}
+    }
+    if (TYPEOF(sWhat) == INTSXP) {
+	if (scalar) {
+	    if (!LENGTH(sWhat)) Rf_error("attempt to use zero-length vector as scalar");
+	    return long2bignum((unsigned long) asInteger(sWhat));
+	} else {
+	    unsigned int i, n = LENGTH(sWhat);
+	    SEXP res = PROTECT(allocVector(VECSXP, n));
+	    const int *d = INTEGER(sWhat);
+	    for (i = 0; i < n; i++)
+		SET_VECTOR_ELT(res, i, long2bignum((unsigned long) d[i]));
+	    UNPROTECT(1);
+	    return res;
+	}
+    }
+    Rf_error("unsupported type to convert");
+    /* unreachable */
+    return R_NilValue;
+}

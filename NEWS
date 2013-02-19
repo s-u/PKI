@@ -5,6 +5,12 @@ NEWS for PKI package
 	formatted objects - mostly for use in key format
 	conversions
 
+    o	added as.BIGNUMint() for ASN.1 BIGNUM integer
+	format conversion
+
+    o	added PKI.mkRSApubkey() to create RSA public keys
+	from modulus and exponent alone
+
     o	add raw2hex() function to convert raw hashes
 	into string format
 

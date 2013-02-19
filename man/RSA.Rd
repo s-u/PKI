@@ -3,6 +3,7 @@
 \alias{PKI.genRSAkey}
 \alias{PKI.load.key}
 \alias{PKI.save.key}
+\alias{PKI.mkRSApubkey}
 \title{
   PKI functions handling RSA keys 
 }
@@ -12,17 +13,21 @@
   \code{PKI.save.key} creates a PEM or DER representation of a RSA key.
   
   \code{PKI.genRSAkey} generates RSA public/private key pair.
+
+  \code{PKI.mkRSApubkey} creates a RSA public key with the supplied
+  modulus and exponent.
 }
 \usage{
 PKI.load.key(what, format = c("PEM", "DER"), private, file)
 PKI.save.key(key, format = c("PEM", "DER"), private, target)
 PKI.genRSAkey(bits = 2048L)
+PKI.mkRSApubkey(modulus, exponent=65537L, format = c("DER", "PEM", "key"))
 }
 \arguments{
   \item{what}{string, raw vector or connection to load the key from}
   \item{key}{RSA key object}
   \item{format}{format - PEM is ASCII (essentially base64-encoded DER
-    with header/footer), DER is binary}
+    with header/footer), DER is binary and key means an acutal key object}
   \item{private}{logical, whether to use the private key (\code{TRUE}),
     public key (\code{FALSE}) or whichever is available (\code{NA} or missing).}
   \item{file}{filename to load the key from - \code{what} and
@@ -32,6 +37,12 @@ PKI.genRSAkey(bits = 2048L)
     either a character vector (PEM) or a raw vector (DER).}
   \item{bits}{size of the generated key in bits. Must be \code{2 ^ n}
     with integer \code{n > 8}.}
+  \item{modulus}{modulus either as a raw vector (see
+    \code{\link{as.BIGNUMint}}) or \code{bigz} object (from \code{gmp}
+    package) or an integer.}
+  \item{exponent}{exponent either as a raw vector (see
+    \code{\link{as.BIGNUMint}}) or \code{bigz} object (from \code{gmp}
+    package) or an integer.}
 }
 %\details{
 %}
@@ -41,7 +52,10 @@ PKI.genRSAkey(bits = 2048L)
   \code{PKI.save.key}: raw vector (DER format) or character vector (PEM
   format).
   
-  \code{PKI.genRSAkey}: private + public key object 
+  \code{PKI.genRSAkey}: private + public key object
+
+  \code{PKI.mkRSApubkey}: raw vector (DER format) or character vector (PEM
+  format) or a \code{"public.key"} object.
 }
 %\references{
 %}
