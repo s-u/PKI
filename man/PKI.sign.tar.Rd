@@ -37,7 +37,14 @@ PKI.verify.tar(tarfile, key, silent = FALSE, enforce.cert = FALSE)
   private key used to sign the content. \code{certificate} is optional
   but if present, it will be embedded in the signature.
 
-  \code{PKI.verify.tar} retrieves the last \code{.signature} entry and
+  The \code{tarfile} can be in compressed form (gzip, bzip2 or xz) in
+  which case it is decompressed internally before the signature is
+  applied. If \code{output} is a file name then the same compression is
+  applied to the output, otherwise the output is uncompressed.
+
+  \code{PKI.verify.tar} retrieves the last \code{.signature} entry from
+  the tar file (if \code{tarfile} is a file name then the same
+  compression auto-detection is applied as above) and
   verifies the signature against either the supplied (public) \code{key}
   or against the key or certificate stored in the signature. The result
   is \code{TRUE} or \code{FALSE} except when \code{enforce.cert} is
@@ -56,10 +63,14 @@ PKI.verify.tar(tarfile, key, silent = FALSE, enforce.cert = FALSE)
   The signature format is ASN.1 DER encoded as follows:
 
   \code{SEQ(signature BITSTRING, subjectPublicKeyInfo, Certificate[opt])}
+  
+  The \code{subjectPublicKeyInfo} can be \code{NULL} in which case the
+  certificate must be present (in X.509 DER format).
 
-  appended as tar entry named \code{.signature}. However, terminating
-  blocks are not removed from the file, so the signature is placed after
-  the EOF blocks and thus doesn't affect extraction.
+  The signature is appended as tar entry named
+  \code{.signature}. However, terminating blocks are not removed from
+  the file, so the signature is placed after the EOF blocks and thus
+  doesn't affect extraction.
 }
 %\seealso{
 %}
