@@ -1,6 +1,14 @@
 NEWS for PKI package
 
 0.1-2	(under development)
+    o	add "DER" format option to PKI.load.cert()
+
+    o	allow key in PKI.verify to be a certificate
+	(which will be passed to PKI.pubkey() internally)
+
+    o	add experimental signing/verification of tar files using
+	PKI.sign.tar() and PKI.verify.tar()
+
 
 0.1-1	2013-02-19
     o	added PKI.load.key() and PKI.save.key()
@@ -29,6 +37,7 @@ NEWS for PKI package
 
     o	added raw2hex() function to convert raw hashes
 	into string format
+
 
 0.1-0	2012-11-05
     o	first public release

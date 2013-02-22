@@ -296,13 +296,13 @@ SEXP PKI_verify_RSA(SEXP what, SEXP sMD, SEXP sKey, SEXP sig) {
 	(md == PKI_MD5 && LENGTH(what) != MD5_DIGEST_LENGTH) ||
 	(md == PKI_SHA1 && LENGTH(what) != SHA_DIGEST_LENGTH))
 	Rf_error("invalid hash");
-    if (!inherits(sKey, "public.key"))
-	Rf_error("key must be RSA public key");
+    if (!inherits(sKey, "public.key") && !inherits(sKey, "private.key"))
+	Rf_error("key must be RSA public or private key");
     key = (EVP_PKEY*) R_ExternalPtrAddr(sKey);
     if (!key)
 	Rf_error("NULL key");
     if (EVP_PKEY_type(key->type) != EVP_PKEY_RSA)
-	Rf_error("key must be RSA public key");
+	Rf_error("key must be RSA public or private key");
     rsa = EVP_PKEY_get1_RSA(key);
     if (!rsa)
 	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
@@ -375,8 +375,8 @@ SEXP PKI_sign(SEXP what, SEXP sKey, SEXP sMD, SEXP sPad) {
     size_t sl;
     if (TYPEOF(what) != RAWSXP)
 	Rf_error("invalid payload to sign - must be a raw vector");
-    if (!inherits(sKey, "public.key"))
-	Rf_error("invalid key object");
+    if (!inherits(sKey, "private.key"))
+	Rf_error("key must be RSA private key");
     mdt = asInteger(sMD);
     padt = asInteger(sPad);
     key = (EVP_PKEY*) R_ExternalPtrAddr(sKey);

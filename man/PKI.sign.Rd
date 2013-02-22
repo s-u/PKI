@@ -16,9 +16,8 @@ PKI.verify(what, signature, key, hash = c("SHA1", "MD5"), digest)
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{what}{raw vector: content to sign}
-  \item{key}{RSA private key to use for signing or RSA public key to use
-    for verification. Use \code{\link{PKI.pubkey}} to obtain a key to
-    verify from a certificate.}
+  \item{key}{RSA private key to use for signing; RSA public key or
+    certificate to use for verification.}
   \item{hash}{hash function to use. "MD5" should not be used unless
     absolutely needed for compatibility as it is less secure.}
   \item{digest}{raw vector: it is possible to supply the digest of

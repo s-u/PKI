@@ -118,13 +118,14 @@ PKI.sign <- function(what, key, hash=c("SHA1", "MD5"), digest) {
 }
 
 PKI.verify <- function(what, signature, key, hash=c("SHA1", "MD5"), digest) {
-  if (!missing(digest) && !missing(what))
-    stop("what and digest are mutually exclusive")
-  if (missing(digest))
-    digest <- PKI.digest(what, hash)
-  hash <- pmatch(hash, c("SHA1", "MD5"))[1]
-  if (is.na(hash)) stop("invalid hash specification")
-  .Call(PKI_verify_RSA, digest, hash, key, signature)
+    if (inherits(key, "X509cert")) key <- PKI.pubkey(key)
+    if (!missing(digest) && !missing(what))
+        stop("what and digest are mutually exclusive")
+    if (missing(digest))
+        digest <- PKI.digest(what, hash)
+    hash <- pmatch(hash, c("SHA1", "MD5"))[1]
+    if (is.na(hash)) stop("invalid hash specification")
+    .Call(PKI_verify_RSA, digest, hash, key, signature)
 }
 
 PKI.mkRSApubkey <- function(modulus, exponent=65537L, format = c("DER", "PEM", "key")) {

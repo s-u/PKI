@@ -16,7 +16,7 @@
   \code{PKI.pubkey} extracts public key from a certificate.  
 }
 \usage{
-PKI.load.cert(what, format = "PEM", file)
+PKI.load.cert(what, format = c("PEM", "DER"), file)
 PKI.verifyCA(certificate, ca)
 PKI.pubkey(certificate)
 }
