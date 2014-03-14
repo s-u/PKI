@@ -14,8 +14,8 @@
   \code{ASN1.encode} converts structured objects into
   \code{ASN.1} binary format.
 
-  \code{ASN1.item} creates an item - basic obejct in
-  structures taht can be encoded using \code{ASN1.encode}.
+  \code{ASN1.item} creates an item - basic object in
+  structures that can be encoded using \code{ASN1.encode}.
 
   \code{ASN1.type} extracts the class type from an
   \code{ASN.1} item
@@ -43,7 +43,7 @@ ASN1.type(what)
   class type - which can be obtained using \code{ASN1.type} function.
 
   \code{ASN1.encode} expects item (or a list of items) either created
-  using \code{ASN1.decode} or \code{ASN1.item} and cinverts them into
+  using \code{ASN1.decode} or \code{ASN1.item} and converts them into
   \code{DER} binary format.
 
   The result of \code{ASN1.encode(ASN1.decode(x))} will be \code{x} if
@@ -65,7 +65,7 @@ ASN1.type(what)
 }
 \note{
   \code{ASN1.encode} uses a fixed buffer for encoding which currently
-  limits the total size of the resulting structre to 1MB.
+  limits the total size of the resulting structure to 1MB.
 
   Only definite length forms are supported. The validity of individual
   items is not checked.

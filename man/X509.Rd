@@ -21,7 +21,7 @@ PKI.verifyCA(certificate, ca)
 PKI.pubkey(certificate)
 }
 \arguments{
-  \item{what}{string, raw vector or connection to load teh certificate
+  \item{what}{string, raw vector or connection to load the certificate
     from}
   \item{format}{format used to encode the certificate}
   \item{file}{filename to load the certificate from - \code{what} and

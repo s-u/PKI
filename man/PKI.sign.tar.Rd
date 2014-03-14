@@ -27,7 +27,7 @@ PKI.verify.tar(tarfile, key, silent = FALSE, enforce.cert = FALSE)
     for failure}
   \item{enforce.cert}{if \code{TRUE} then a certificate is required in
     the signature. It can be also set to a valid certificate in which
-    case the public key of the certificate in the signature much also
+    case the public key of the certificate in the signature must also
     match the public key in the supplied certificate.}
 }
 \details{

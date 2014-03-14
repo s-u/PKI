@@ -25,7 +25,7 @@ as.BIGNUMint(what, scalar = TRUE)
 \details{
   The BIGNUM representation as used in ASN.1 is a big-endian encoding of
   variable length stored in a raw vector. Negative numbers are stored in
-  two-complement's encoding, but are curretnly unsupported by
+  two-complement's encoding, but are currently unsupported by
   \code{as.BIGNUMint}.
 }
 \value{
