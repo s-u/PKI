@@ -35,10 +35,13 @@ PKI.decrypt(what, key, cipher = NULL)
   cipher information such as RSA keys (in fact it is ignored in that
   case).
 
-  Supported symmetric ciphers are \code{"aes128ecb"} (alias
-  \code{"aes128"}), \code{"aes128cbc"}, \code{"aes128ofb"},
-  \code{"aes256ecb"} (alias \code{"aes256"}), \code{"aes256cbc"} and
-  \code{"aes256ofb"}. PKCS padding is used to fill up to the block size.
+  Supported symmetric ciphers are AES-128, AES-256 and BF
+  (blowfish). Each cipher can be used in CBC (default), ECB or OFB
+  modes which are specified as suffix, so \code{"aes256ofb"} would
+  specify AES-256 in OFB mode. Case and non-alphanumeric characters are
+  ignored, so the same could be specified as \code{"AES-256-OFB"}.
+  PKCS padding is used to fill up to the block size. Analogously, PKCS
+  padding is expected when decoding.
 
   Note that the payload for RSA encryption should be very small since
   it must fit into the key size including padding. For example, 1024-bit

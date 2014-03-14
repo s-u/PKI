@@ -178,6 +178,8 @@ SEXP PKI_cert_public_key(SEXP sCert) {
 
 static char buf[8192];
 
+static char cipher_name[32];
+
 static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transient) {
     EVP_CIPHER_CTX *ctx;
     if (inherits(sKey, "symmeric.cipher")) {
@@ -193,19 +195,41 @@ static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transie
 	if (TYPEOF(sCipher) != STRSXP || LENGTH(sCipher) != 1)
 	    Rf_error("non-RSA key and no cipher is specified");
 	cipher = CHAR(STRING_ELT(sCipher, 0));
-	if (!strcmp(cipher, "aes128") || !strcmp(cipher, "aes128ecb"))
-	    type = EVP_aes_128_ecb();
-	else if (!strcmp(cipher, "aes128cbc"))
+	if (strlen(cipher) > sizeof(cipher_name) - 1)
+	    Rf_error("invalid cipher name");
+	{
+	    char *c = cipher_name;
+	    while (*cipher) {
+		if ((*cipher >= 'a' && *cipher <= 'z') || (*cipher >= '0' && *cipher <= '9'))
+		    *(c++) = *cipher;
+		else if (*cipher >= 'A' && *cipher <= 'Z')
+		    *(c++) = *cipher + 32;
+		cipher++;
+	    }
+	    *c = 0;
+	    cipher = (const char*) cipher_name;
+	}
+	if (!strcmp(cipher, "aes128") || !strcmp(cipher, "aes128cbc"))
 	    type = EVP_aes_128_cbc();
+	else if (!strcmp(cipher, "aes128ecb"))
+	    type = EVP_aes_128_ecb();
 	else if (!strcmp(cipher, "aes128ofb"))
 	    type = EVP_aes_128_ofb();
-	else if (!strcmp(cipher, "aes256") || !strcmp(cipher, "aes256ecb"))
-	    type = EVP_aes_256_ecb();
-	else if (!strcmp(cipher, "aes256cbc"))
+	else if (!strcmp(cipher, "aes256") || !strcmp(cipher, "aes256cbc"))
 	    type = EVP_aes_256_cbc();
+	else if (!strcmp(cipher, "aes256ecb"))
+	    type = EVP_aes_256_ecb();
 	else if (!strcmp(cipher, "aes256ofb"))
 	    type = EVP_aes_256_ofb();
-	else Rf_error("unknown cipher `%s'", cipher);
+	else if (!strcmp(cipher, "blowfish") || !strcmp(cipher, "bfcbc"))
+	    type = EVP_bf_cbc();
+	else if (!strcmp(cipher, "bfecb"))
+	    type = EVP_bf_ecb();
+	else if (!strcmp(cipher, "bfofb"))
+	    type = EVP_bf_ofb();
+	else if (!strcmp(cipher, "bfcfb"))
+	    type = EVP_bf_cfb();
+	else Rf_error("unknown cipher `%s'", CHAR(STRING_ELT(sCipher, 0)));
 	if (TYPEOF(sKey) == STRSXP) {
 	    c_key = CHAR(STRING_ELT(sKey, 0));
 	    key_len = strlen(c_key);
