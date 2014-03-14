@@ -344,19 +344,28 @@ SEXP PKI_decrypt(SEXP what, SEXP sKey, SEXP sCipher) {
 #define PKI_SHA1 1
 #define PKI_MD5  2
 
-SEXP PKI_digest(SEXP what, SEXP sMD) {
+SEXP PKI_digest(SEXP sWhat, SEXP sMD) {
     SEXP res;
     unsigned char hash[32]; /* really, at most 20 bytes are needed */
     int len, md = asInteger(sMD);
-    if (TYPEOF(what) != RAWSXP)
-	Rf_error("what must be a raw vector");
+    const unsigned char *what;
+    int what_len;
+    if (TYPEOF(sWhat) == RAWSXP) {
+	what = (const unsigned char*) RAW(sWhat);
+	what_len = LENGTH(sWhat);
+    } else if (TYPEOF(sWhat) == STRSXP) {
+	if (LENGTH(sWhat) < 1) return allocVector(RAWSXP, 0); /* good? */
+	what = (const unsigned char*) CHAR(STRING_ELT(sWhat, 0));
+	what_len = strlen((const char*) what);
+    } else
+	Rf_error("what must be a string or a raw vector");
     switch (md) {
     case PKI_SHA1:
-	SHA1((const unsigned char*) RAW(what), LENGTH(what), hash);
+	SHA1(what, what_len, hash);
 	len = SHA_DIGEST_LENGTH;
 	break;
     case PKI_MD5:
-	MD5((const unsigned char*) RAW(what), LENGTH(what), hash);
+	MD5(what, what_len, hash);
 	len = MD5_DIGEST_LENGTH;
 	break;
     default:
