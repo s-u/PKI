@@ -9,6 +9,9 @@ NEWS for PKI package
     o	add experimental signing/verification of tar files using
 	PKI.sign.tar() and PKI.verify.tar()
 
+    o	add support for symmetric ciphers like AES in
+	PKI.encrypt()/PKI.decrypt()
+
 
 0.1-1	2013-02-19
     o	added PKI.load.key() and PKI.save.key()
