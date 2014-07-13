@@ -366,7 +366,8 @@ SEXP PKI_decrypt(SEXP what, SEXP sKey, SEXP sCipher) {
 }
 
 #define PKI_SHA1 1
-#define PKI_MD5  2
+#define PKI_SHA256 2
+#define PKI_MD5  3
 
 SEXP PKI_digest(SEXP sWhat, SEXP sMD) {
     SEXP res;
@@ -388,6 +389,10 @@ SEXP PKI_digest(SEXP sWhat, SEXP sMD) {
 	SHA1(what, what_len, hash);
 	len = SHA_DIGEST_LENGTH;
 	break;
+    case PKI_SHA256:
+  SHA256(what, what_len, hash);
+  len = SHA256_DIGEST_LENGTH;
+  break;
     case PKI_MD5:
 	MD5(what, what_len, hash);
 	len = MD5_DIGEST_LENGTH;
@@ -403,15 +408,27 @@ SEXP PKI_digest(SEXP sWhat, SEXP sMD) {
 
 SEXP PKI_sign_RSA(SEXP what, SEXP sMD, SEXP sKey) {
     SEXP res;
-    int md = asInteger(sMD);
+    int md = asInteger(sMD), type;
     EVP_PKEY *key;
     RSA *rsa;
     unsigned int siglen = sizeof(buf);
-    if (md != PKI_MD5 && md != PKI_SHA1)
-	Rf_error("unsupported hash type");
+  switch (md) {
+    case PKI_MD5:
+      type = NID_md5;
+      break;
+    case PKI_SHA1:
+      type = NID_sha1;
+      break;
+    case PKI_SHA256:
+      type = NID_sha256;
+      break;
+    default:
+      Rf_error("unsupported hash type");
+  }
     if (TYPEOF(what) != RAWSXP ||
 	(md == PKI_MD5 && LENGTH(what) != MD5_DIGEST_LENGTH) ||
-	(md == PKI_SHA1 && LENGTH(what) != SHA_DIGEST_LENGTH))
+	(md == PKI_SHA1 && LENGTH(what) != SHA_DIGEST_LENGTH) ||
+  (md == PKI_SHA256 && LENGTH(what) != SHA256_DIGEST_LENGTH))
 	Rf_error("invalid hash");
     if (!inherits(sKey, "private.key"))
 	Rf_error("key must be RSA private key");
@@ -423,7 +440,7 @@ SEXP PKI_sign_RSA(SEXP what, SEXP sMD, SEXP sKey) {
     rsa = EVP_PKEY_get1_RSA(key);
     if (!rsa)
 	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
-    if (RSA_sign((md == PKI_MD5) ? NID_md5 : NID_sha1,
+    if (RSA_sign(type,
 		 (const unsigned char*) RAW(what), LENGTH(what),
 		 (unsigned char *) buf, &siglen, rsa) != 1)
 	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
@@ -433,14 +450,26 @@ SEXP PKI_sign_RSA(SEXP what, SEXP sMD, SEXP sKey) {
 }
 
 SEXP PKI_verify_RSA(SEXP what, SEXP sMD, SEXP sKey, SEXP sig) {
-    int md = asInteger(sMD);
+    int md = asInteger(sMD), type;
     EVP_PKEY *key;
     RSA *rsa;
-    if (md != PKI_MD5 && md != PKI_SHA1)
-	Rf_error("unsupported hash type");
+    switch (md) {
+    case PKI_MD5:
+  type = NID_md5;
+  break;
+    case PKI_SHA1:
+  type = NID_sha1;
+  break;
+    case PKI_SHA256:
+  type = NID_sha256;
+  break;
+    default:
+  Rf_error("unsupported hash type");
+  }
     if (TYPEOF(what) != RAWSXP ||
-	(md == PKI_MD5 && LENGTH(what) != MD5_DIGEST_LENGTH) ||
-	(md == PKI_SHA1 && LENGTH(what) != SHA_DIGEST_LENGTH))
+  (md == PKI_MD5 && LENGTH(what) != MD5_DIGEST_LENGTH) ||
+  (md == PKI_SHA1 && LENGTH(what) != SHA_DIGEST_LENGTH) ||
+  (md == PKI_SHA256 && LENGTH(what) != SHA256_DIGEST_LENGTH))
 	Rf_error("invalid hash");
     if (!inherits(sKey, "public.key") && !inherits(sKey, "private.key"))
 	Rf_error("key must be RSA public or private key");
@@ -454,7 +483,7 @@ SEXP PKI_verify_RSA(SEXP what, SEXP sMD, SEXP sKey, SEXP sig) {
 	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
     return
 	ScalarLogical( /* FIXME: sig is not const in RSA_verify - that is odd so in theory in may modify sig ... */
-		      (RSA_verify((md == PKI_MD5) ? NID_md5 : NID_sha1,
+		      (RSA_verify(type,
 				  (const unsigned char*) RAW(what), LENGTH(what),
 				  (unsigned char *) RAW(sig), LENGTH(sig), rsa) == 1)
 		      ? TRUE : FALSE);
