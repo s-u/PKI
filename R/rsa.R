@@ -4,6 +4,8 @@
 ##  public key : ASN.1 SEQ(modulus (n) INT, publicExponent (e) INT)
 ##  private key: ver, n, e, d, p, q, d mod (p-1), d mod (q-1), (inv q) mod p [,other primes]
 ##
+## PKCS#8: (BEGIN PUBLIC KEY) - RFC 5208
+##
 ## X.509 SubjectPublicKeyInfo (BEGIN PUBLIC KEY) - RFC 1422
 ##  SEQ(AlgorithmIdentifier:SEQ(OID, param[NULL]), BIT-STR(key - as defined in PKCS#1))
 ##
@@ -34,10 +36,12 @@ PKI.load.key <- function(what, format=c("PEM", "DER"), private, file) {
         rm.ln <- which(grepl(":", what, fixed=TRUE) | grepl("\\\\$", what))
         if (length(rm.ln)) what <- what[-rm.ln]
         if (either || private) {
-            i <- grep("-BEGIN RSA PRIVATE KEY-", what, fixed=TRUE)
-            j <- grep("-END RSA PRIVATE KEY-", what, fixed=TRUE)
+            ## Check if this is a private key.
+            i <- grep("-BEGIN (RSA )?PRIVATE KEY-", what)
+            j <- grep("-END (RSA )?PRIVATE KEY-", what)
             if (length(i) >= 1L && length(j) >= 1L && i[1] < j[1]) {
-                what <- base64enc::base64decode(what[(i + 1L):(j - 1L)])
+                ## PEM_read_bio_PrivateKey method takes the base64 encoding with the header.
+                what <- paste(what[i:j], collapse='\n')
                 private <- TRUE
             } else {
                 if (private)

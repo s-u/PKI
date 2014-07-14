@@ -491,16 +491,14 @@ SEXP PKI_verify_RSA(SEXP what, SEXP sMD, SEXP sKey, SEXP sig) {
 
 SEXP PKI_load_private_RSA(SEXP what) {
     EVP_PKEY *key;
-    RSA *rsa = 0;
-    const unsigned char *ptr;
-    if (TYPEOF(what) != RAWSXP)
-	Rf_error("key must be a raw vector");
-    ptr = (const unsigned char *) RAW(what);
-    rsa = d2i_RSAPrivateKey(&rsa, &ptr, LENGTH(what));
-    if (!rsa)
+    BIO *bio_mem;
+    if (TYPEOF(what) != STRSXP)
+	Rf_error("Private key must be a character vector");
+    SEXP b64Key = STRING_ELT(what, 0);
+    bio_mem = BIO_new_mem_buf((void *) CHAR(b64Key), LENGTH(b64Key));
+    key = PEM_read_bio_PrivateKey(bio_mem, &key, 0, "Can not ask password.");
+    if (!key)
 	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
-    key = EVP_PKEY_new();
-    EVP_PKEY_assign_RSA(key, rsa);
     return wrap_EVP_PKEY(key, PKI_KT_PRIVATE);
 }
 
