@@ -559,3 +559,20 @@ SEXP PKI_sign(SEXP what, SEXP sKey, SEXP sMD, SEXP sPad) {
 }
 
 #endif
+
+char* PKI_get_subject(SEXP sCert, char *subject) {
+    X509 *cert;
+    PKI_init();
+    cert = retrieve_cert(sCert, "");
+    //X509_NAME *x509_name;
+    //x509_name = X509_get_subject_name(cert);
+	BIO *mem = BIO_new(BIO_s_mem());
+    if (X509_NAME_print_ex(mem,X509_get_subject_name(cert), 0, XN_FLAG_COMPAT) < 0) {
+		Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+	}
+	int size = sizeof(subject);
+	int rc = BIO_gets(mem, subject, size);
+    if (rc < 0)
+		Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    return subject;
+}
