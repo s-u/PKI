@@ -568,10 +568,11 @@ SEXP PKI_get_subject(SEXP sCert) {
     if (X509_NAME_print_ex(mem,X509_get_subject_name(cert), 0, XN_FLAG_COMPAT) < 0) {
 		Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
 	}
-	int size = sizeof(mem);
+	//int size = sizeof(mem);
 	char* tmp_subject;
-	tmp_subject = (char *) R_alloc(size, sizeof(char));
-	int rc = BIO_gets(mem, tmp_subject, size);
+	tmp_subject = (char *) R_alloc(100, sizeof(char)); // FIXME: Determine the length of this string via inspection
+	int rc = BIO_gets(mem, tmp_subject, 100); // FIXME: Determine the length of this string via inspection 
+	BIO_free(mem);
     if (rc < 0)
 		Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
 	SEXP subject = PROTECT(allocVector(STRSXP, 1));
