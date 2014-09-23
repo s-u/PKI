@@ -560,6 +560,7 @@ SEXP PKI_sign(SEXP what, SEXP sKey, SEXP sMD, SEXP sPad) {
 
 #endif
 
+// Return the Subject of an X509 Certificate by wrapping the OpenSSL X509_get_subject_name() function.
 SEXP PKI_get_subject(SEXP sCert) {
     X509 *cert;
     PKI_init();
@@ -568,15 +569,26 @@ SEXP PKI_get_subject(SEXP sCert) {
     if (X509_NAME_print_ex(mem,X509_get_subject_name(cert), 0, XN_FLAG_COMPAT) < 0) {
 		Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
 	}
-	//int size = sizeof(mem);
 	char* tmp_subject;
-	tmp_subject = (char *) R_alloc(100, sizeof(char)); // FIXME: Determine the length of this string via inspection
-	int rc = BIO_gets(mem, tmp_subject, 100); // FIXME: Determine the length of this string via inspection 
+	char* text;
+	int BUF_SIZE = 100;
+    int textsize = 0;
+	tmp_subject = (char *) R_alloc(BUF_SIZE, sizeof(char));
+	int rc;
+	while ( (rc = BIO_gets(mem, tmp_subject, BUF_SIZE)) > 0 ) {
+        int newsize = strlen(text)+1+strlen(tmp_subject);
+        text = S_realloc(text, newsize, textsize, sizeof(char));
+        textsize = newsize;
+		if( !text ) {
+            Rf_error("%s", ERR_error_string(ERR_get_error(), "Failure to allocate memory for reading the subject string."));
+		}
+		strcat( text, tmp_subject );	  
+	}
 	BIO_free(mem);
     if (rc < 0)
 		Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
 	SEXP subject = PROTECT(allocVector(STRSXP, 1));
-	SET_STRING_ELT(subject, 0, mkChar(tmp_subject));
+	SET_STRING_ELT(subject, 0, mkChar(text));
 	UNPROTECT(1);
     return subject;
 }
