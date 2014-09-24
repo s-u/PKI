@@ -45,7 +45,10 @@ PKI.get.subject(certificate)
 
   \code{PKI.pubkey}: public key object
 
-  \code{PKI.get.subject}: string containing the subject information
+  \code{PKI.get.subject}: string containing the subject information in
+  one-line RFC2253 format but in UTF8 encoding instead of MBS escapes.
+  NOTE: this is experimantal, we may choose to parse the contents and
+  return it in native R form as a named vector instead.
 }
 %\references{
 %}

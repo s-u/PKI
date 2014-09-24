@@ -592,13 +592,12 @@ SEXP PKI_get_subject(SEXP sCert) {
     SEXP res;
     X509 *cert;
     BIO  *mem = BIO_new(BIO_s_mem());
-    int  rc;
     long len;
     char *txt = 0;
     PKI_init();
     cert = retrieve_cert(sCert, "");
-    if (X509_NAME_print_ex(mem, X509_get_subject_name(cert), 0, XN_FLAG_COMPAT) < 0) {
-	BIO_free(mem);
+    if (X509_NAME_print_ex(mem, X509_get_subject_name(cert), 0, (XN_FLAG_ONELINE | ASN1_STRFLGS_UTF8_CONVERT) & ~ASN1_STRFLGS_ESC_MSB) < 0) {
+      BIO_free(mem);
 	Rf_error("X509_NAME_print_ex failed with %s", ERR_error_string(ERR_get_error(), NULL));
     }
     len = BIO_get_mem_data(mem, &txt);
@@ -606,9 +605,8 @@ SEXP PKI_get_subject(SEXP sCert) {
       BIO_free(mem);
       Rf_error("cannot get memory buffer, %s", ERR_error_string(ERR_get_error(), NULL));
     }
-    /* FIXME: should we split multi-line entries? */
     res = PROTECT(allocVector(STRSXP, 1));
-    SET_STRING_ELT(res, 0, mkCharLen(txt, len));
+    SET_STRING_ELT(res, 0, mkCharLenCE(txt, len, CE_UTF8));
     UNPROTECT(1);
     BIO_free(mem);
     return res;
