@@ -1,14 +1,14 @@
 \name{PKI.digest}
 \alias{PKI.digest}
 \title{
-  Compute digest sum based on SHA1 or MD5 hash functions
+  Compute digest sum based on SHA1, SHA256 or MD5 hash functions
 }
 \description{
   \code{PKI.digest} computes digsest sum based on the hash function
   specified
 }
 \usage{
-PKI.digest(what, hash = c("SHA1", "MD5"))
+PKI.digest(what, hash = c("SHA1", "SHA256", "MD5"))
 }
 \arguments{
   \item{what}{raw vector of bytes to digest}

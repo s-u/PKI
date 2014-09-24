@@ -22,6 +22,8 @@
 #include <CommonCrypto/CommonDigest.h>
 #undef SHA1
 #define SHA1 CC_SHA1
+#undef SHA256
+#define SHA256 CC_SHA256
 #undef MD5
 #define MD5 CC_MD5
 #endif

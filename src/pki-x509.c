@@ -366,7 +366,8 @@ SEXP PKI_decrypt(SEXP what, SEXP sKey, SEXP sCipher) {
 }
 
 #define PKI_SHA1 1
-#define PKI_MD5  2
+#define PKI_SHA256 2
+#define PKI_MD5  3
 
 SEXP PKI_digest(SEXP sWhat, SEXP sMD) {
     SEXP res;
@@ -388,6 +389,10 @@ SEXP PKI_digest(SEXP sWhat, SEXP sMD) {
 	SHA1(what, what_len, hash);
 	len = SHA_DIGEST_LENGTH;
 	break;
+    case PKI_SHA256:
+  SHA256(what, what_len, hash);
+  len = SHA256_DIGEST_LENGTH;
+  break;
     case PKI_MD5:
 	MD5(what, what_len, hash);
 	len = MD5_DIGEST_LENGTH;
@@ -403,15 +408,27 @@ SEXP PKI_digest(SEXP sWhat, SEXP sMD) {
 
 SEXP PKI_sign_RSA(SEXP what, SEXP sMD, SEXP sKey) {
     SEXP res;
-    int md = asInteger(sMD);
+    int md = asInteger(sMD), type;
     EVP_PKEY *key;
     RSA *rsa;
     unsigned int siglen = sizeof(buf);
-    if (md != PKI_MD5 && md != PKI_SHA1)
-	Rf_error("unsupported hash type");
+  switch (md) {
+    case PKI_MD5:
+      type = NID_md5;
+      break;
+    case PKI_SHA1:
+      type = NID_sha1;
+      break;
+    case PKI_SHA256:
+      type = NID_sha256;
+      break;
+    default:
+      Rf_error("unsupported hash type");
+  }
     if (TYPEOF(what) != RAWSXP ||
 	(md == PKI_MD5 && LENGTH(what) != MD5_DIGEST_LENGTH) ||
-	(md == PKI_SHA1 && LENGTH(what) != SHA_DIGEST_LENGTH))
+	(md == PKI_SHA1 && LENGTH(what) != SHA_DIGEST_LENGTH) ||
+  (md == PKI_SHA256 && LENGTH(what) != SHA256_DIGEST_LENGTH))
 	Rf_error("invalid hash");
     if (!inherits(sKey, "private.key"))
 	Rf_error("key must be RSA private key");
@@ -423,7 +440,7 @@ SEXP PKI_sign_RSA(SEXP what, SEXP sMD, SEXP sKey) {
     rsa = EVP_PKEY_get1_RSA(key);
     if (!rsa)
 	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
-    if (RSA_sign((md == PKI_MD5) ? NID_md5 : NID_sha1,
+    if (RSA_sign(type,
 		 (const unsigned char*) RAW(what), LENGTH(what),
 		 (unsigned char *) buf, &siglen, rsa) != 1)
 	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
@@ -433,14 +450,26 @@ SEXP PKI_sign_RSA(SEXP what, SEXP sMD, SEXP sKey) {
 }
 
 SEXP PKI_verify_RSA(SEXP what, SEXP sMD, SEXP sKey, SEXP sig) {
-    int md = asInteger(sMD);
+    int md = asInteger(sMD), type;
     EVP_PKEY *key;
     RSA *rsa;
-    if (md != PKI_MD5 && md != PKI_SHA1)
-	Rf_error("unsupported hash type");
+    switch (md) {
+    case PKI_MD5:
+  type = NID_md5;
+  break;
+    case PKI_SHA1:
+  type = NID_sha1;
+  break;
+    case PKI_SHA256:
+  type = NID_sha256;
+  break;
+    default:
+  Rf_error("unsupported hash type");
+  }
     if (TYPEOF(what) != RAWSXP ||
-	(md == PKI_MD5 && LENGTH(what) != MD5_DIGEST_LENGTH) ||
-	(md == PKI_SHA1 && LENGTH(what) != SHA_DIGEST_LENGTH))
+  (md == PKI_MD5 && LENGTH(what) != MD5_DIGEST_LENGTH) ||
+  (md == PKI_SHA1 && LENGTH(what) != SHA_DIGEST_LENGTH) ||
+  (md == PKI_SHA256 && LENGTH(what) != SHA256_DIGEST_LENGTH))
 	Rf_error("invalid hash");
     if (!inherits(sKey, "public.key") && !inherits(sKey, "private.key"))
 	Rf_error("key must be RSA public or private key");
@@ -454,7 +483,7 @@ SEXP PKI_verify_RSA(SEXP what, SEXP sMD, SEXP sKey, SEXP sig) {
 	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
     return
 	ScalarLogical( /* FIXME: sig is not const in RSA_verify - that is odd so in theory in may modify sig ... */
-		      (RSA_verify((md == PKI_MD5) ? NID_md5 : NID_sha1,
+		      (RSA_verify(type,
 				  (const unsigned char*) RAW(what), LENGTH(what),
 				  (unsigned char *) RAW(sig), LENGTH(sig), rsa) == 1)
 		      ? TRUE : FALSE);
@@ -462,16 +491,14 @@ SEXP PKI_verify_RSA(SEXP what, SEXP sMD, SEXP sKey, SEXP sig) {
 
 SEXP PKI_load_private_RSA(SEXP what) {
     EVP_PKEY *key;
-    RSA *rsa = 0;
-    const unsigned char *ptr;
-    if (TYPEOF(what) != RAWSXP)
-	Rf_error("key must be a raw vector");
-    ptr = (const unsigned char *) RAW(what);
-    rsa = d2i_RSAPrivateKey(&rsa, &ptr, LENGTH(what));
-    if (!rsa)
+    BIO *bio_mem;
+    if (TYPEOF(what) != STRSXP)
+	Rf_error("Private key must be a character vector");
+    SEXP b64Key = STRING_ELT(what, 0);
+    bio_mem = BIO_new_mem_buf((void *) CHAR(b64Key), LENGTH(b64Key));
+    key = PEM_read_bio_PrivateKey(bio_mem, &key, 0, "Can not ask password.");
+    if (!key)
 	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
-    key = EVP_PKEY_new();
-    EVP_PKEY_assign_RSA(key, rsa);
     return wrap_EVP_PKEY(key, PKI_KT_PRIVATE);
 }
 

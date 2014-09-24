@@ -10,8 +10,8 @@
   \code{PKI.verify} verifies a signature of RSA-signed content
 }
 \usage{
-PKI.sign(what, key, hash = c("SHA1", "MD5"), digest)
-PKI.verify(what, signature, key, hash = c("SHA1", "MD5"), digest)
+PKI.sign(what, key, hash = c("SHA1", "SHA256", "MD5"), digest)
+PKI.verify(what, signature, key, hash = c("SHA1", "SHA256", "MD5"), digest)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
