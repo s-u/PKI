@@ -3,6 +3,7 @@
 \alias{PKI.load.cert}
 \alias{PKI.verifyCA}
 \alias{PKI.pubkey}
+\alias{PKI.get.subject}
 \title{
   Public Key Instraftructure (X509) functions
 }
@@ -14,11 +15,14 @@
   trust.
 
   \code{PKI.pubkey} extracts public key from a certificate.  
+
+  \code{PKI.get.subject} extracts the subject name from the certificate.
 }
 \usage{
 PKI.load.cert(what, format = c("PEM", "DER"), file)
 PKI.verifyCA(certificate, ca)
 PKI.pubkey(certificate)
+PKI.get.subject(certificate)
 }
 \arguments{
   \item{what}{string, raw vector or connection to load the certificate
@@ -40,6 +44,8 @@ PKI.pubkey(certificate)
   \code{FALSE} otherwise
 
   \code{PKI.pubkey}: public key object
+
+  \code{PKI.get.subject}: string containing the subject information
 }
 %\references{
 %}
@@ -55,5 +61,6 @@ PKI.pubkey(certificate)
   my.cert <- PKI.load.cert(readLines(system.file("certs", "demo.crt", package="PKI")))
   PKI.verifyCA(my.cert, ca)
   PKI.pubkey(my.cert)
+  PKI.get.subject(my.cert)
 }
 \keyword{manip}
