@@ -12,6 +12,13 @@ NEWS for PKI package
     o	add support for symmetric ciphers like AES in
 	PKI.encrypt()/PKI.decrypt()
 
+    o	add support for retrieving the subject of a certificate
+	via PKI.get.subject() [PR#2, thanks to Matt Jones]
+
+    o	add support for PKCS#8 private key format (RFC 5208)
+	and sign/verify/digest using SHA256.
+	[PR#1, thanks to Siddhartha Bagaria]
+
 
 0.1-1	2013-02-19
     o	added PKI.load.key() and PKI.save.key()
