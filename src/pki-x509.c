@@ -612,7 +612,7 @@ SEXP PKI_get_subject(SEXP sCert) {
     return res;
 }
 
-// Return the notBefore date of an X509 Certificate by wrapping the OpenSSL X509_get_notBefore() function.
+/* Return the notBefore date of an X509 Certificate by wrapping the OpenSSL X509_get_notBefore() function. */
 SEXP PKI_get_notBefore(SEXP sCert) {
     X509 *cert;
     PKI_init();
@@ -621,13 +621,13 @@ SEXP PKI_get_notBefore(SEXP sCert) {
     timeASN1 = X509_get_notBefore(cert);
     time_t result_time;
     result_time = getTimeFromASN1(timeASN1);
-    SEXP *timeSEXP;
+    SEXP timeSEXP;
     timeSEXP = PROTECT(ScalarReal(result_time));
     UNPROTECT(1);
     return timeSEXP;
 }
 
-// Return the notAfter date of an X509 Certificate by wrapping the OpenSSL X509_get_notAfter() function.
+/* Return the notAfter date of an X509 Certificate by wrapping the OpenSSL X509_get_notAfter() function. */
 SEXP PKI_get_notAfter(SEXP sCert) {
     X509 *cert;
     PKI_init();
@@ -636,7 +636,7 @@ SEXP PKI_get_notAfter(SEXP sCert) {
     timeASN1 = X509_get_notAfter(cert);
     time_t result_time;
     result_time = getTimeFromASN1(timeASN1);
-    SEXP *timeSEXP;
+    SEXP timeSEXP;
     timeSEXP = PROTECT(ScalarReal(result_time));
     UNPROTECT(1);
     return timeSEXP;
