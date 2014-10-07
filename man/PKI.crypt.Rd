@@ -61,8 +61,8 @@ PKI.decrypt(what, key, cipher = NULL)
   stopifnot(identical(x, y))
   print(rawToChar(y))
 
-  ## AES symmetric - use SHA1 to support arbitrarily long key strings
-  key <- PKI.digest(charToRaw("hello"))
+  ## AES symmetric - use SHA256 to support arbitrarily long key strings
+  key <- PKI.digest(charToRaw("hello"), "SHA256")
   ae <- PKI.encrypt(x, key, "aes256")
   ae
   ad <- PKI.decrypt(ae, key, "aes256")
