@@ -25,6 +25,10 @@ NEWS for PKI package
     o	bugfix: if the last block was filled during encryption, the
 	necessary additional padding block was not generated. (#8)
 
+    o	bugfix: some functions did not call PKI initialization.
+	One manifestation was that error messages were cryptic until
+	any X.509 function was called. (#9)
+
 
 0.1-1	2013-02-19
     o	added PKI.load.key() and PKI.save.key()
