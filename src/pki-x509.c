@@ -132,6 +132,7 @@ SEXP PKI_extract_key(SEXP sKey, SEXP sPriv) {
     key = (EVP_PKEY*) R_ExternalPtrAddr(sKey);
     if (!key)
 	Rf_error("NULL key");
+    PKI_init();
     if (EVP_PKEY_type(key->type) != EVP_PKEY_RSA)
 	Rf_error("Sorry only RSA keys are supported at this point");
     rsa = EVP_PKEY_get1_RSA(key);
@@ -182,6 +183,7 @@ static char cipher_name[32];
 
 static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transient) {
     EVP_CIPHER_CTX *ctx;
+    PKI_init();
     if (inherits(sKey, "symmeric.cipher")) {
 	if (transient) transient[0] = 0;
 	return (EVP_CIPHER_CTX*) R_ExternalPtrAddr(sCipher);
@@ -329,6 +331,7 @@ SEXP PKI_decrypt(SEXP what, SEXP sKey, SEXP sCipher) {
     int len;
     if (TYPEOF(what) != RAWSXP)
 	Rf_error("invalid payload to sign - must be a raw vector");
+    PKI_init();
     if (!inherits(sKey, "private.key")) {
 	int transient_cipher = 0, fin = 0;
 	EVP_CIPHER_CTX *ctx = get_cipher(sKey, sCipher, 0, &transient_cipher);
@@ -377,6 +380,7 @@ SEXP PKI_digest(SEXP sWhat, SEXP sMD) {
     int len, md = asInteger(sMD);
     const unsigned char *what;
     int what_len;
+    PKI_init();
     if (TYPEOF(sWhat) == RAWSXP) {
 	what = (const unsigned char*) RAW(sWhat);
 	what_len = LENGTH(sWhat);
@@ -437,6 +441,7 @@ SEXP PKI_sign_RSA(SEXP what, SEXP sMD, SEXP sKey) {
     key = (EVP_PKEY*) R_ExternalPtrAddr(sKey);
     if (!key)
 	Rf_error("NULL key");
+    PKI_init();
     if (EVP_PKEY_type(key->type) != EVP_PKEY_RSA)
 	Rf_error("key must be RSA private key");
     rsa = EVP_PKEY_get1_RSA(key);
@@ -497,6 +502,7 @@ SEXP PKI_load_private_RSA(SEXP what) {
     if (TYPEOF(what) != STRSXP)
 	Rf_error("Private key must be a character vector");
     SEXP b64Key = STRING_ELT(what, 0);
+    PKI_init();
     bio_mem = BIO_new_mem_buf((void *) CHAR(b64Key), LENGTH(b64Key));
     key = PEM_read_bio_PrivateKey(bio_mem, &key, 0, "Can not ask password.");
     if (!key)
@@ -510,6 +516,7 @@ SEXP PKI_load_public_RSA(SEXP what) {
     const unsigned char *ptr;
     if (TYPEOF(what) != RAWSXP)
 	Rf_error("key must be a raw vector");
+    PKI_init();
     ptr = (const unsigned char *) RAW(what);
     rsa = d2i_RSA_PUBKEY(&rsa, &ptr, LENGTH(what));
     if (!rsa)
@@ -525,6 +532,7 @@ SEXP PKI_RSAkeygen(SEXP sBits) {
     int bits = asInteger(sBits);
     if (bits < 512)
 	Rf_error("invalid key size");
+    PKI_init();
     rsa = RSA_generate_key(bits, 65537, 0, 0);
     if (!rsa)
 	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
@@ -552,6 +560,7 @@ SEXP PKI_sign(SEXP what, SEXP sKey, SEXP sMD, SEXP sPad) {
 	Rf_error("invalid payload to sign - must be a raw vector");
     if (!inherits(sKey, "private.key"))
 	Rf_error("key must be RSA private key");
+    PKI_init();
     mdt = asInteger(sMD);
     padt = asInteger(sPad);
     key = (EVP_PKEY*) R_ExternalPtrAddr(sKey);
