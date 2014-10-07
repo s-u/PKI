@@ -237,8 +237,8 @@ static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transie
 	    c_key = (const char*) RAW(sKey);
 	    key_len = LENGTH(sKey);
 	}
-	if (key_len < (EVP_CIPHER_key_length(type) / 8))
-	    Rf_error("key is too short for the cipher - need %d bits", EVP_CIPHER_key_length(type));
+	if (key_len < EVP_CIPHER_key_length(type))
+	    Rf_error("key is too short (%d bytes) for the cipher - need %d bytes", key_len, EVP_CIPHER_key_length(type));
 	ctx = (EVP_CIPHER_CTX*) malloc(sizeof(*ctx));
 	if (!ctx)
 	    Rf_error("cannot allocate memory for cipher");
@@ -285,7 +285,9 @@ SEXP PKI_encrypt(SEXP what, SEXP sKey, SEXP sCipher) {
 	EVP_CIPHER_CTX *ctx = get_cipher(sKey, sCipher, 1, &transient_cipher);
 	int block_len = EVP_CIPHER_CTX_block_size(ctx);
 	int padding = LENGTH(what) % block_len;
-	if (padding) padding = block_len - padding;
+	/* Note: padding is always required, so if the last block is full, there
+	   must be an extra block added at the end */
+	padding = block_len - padding;
 	/* FIXME: ctx will leak on alloc errors for transient ciphers - wrap them first */
 	res = allocVector(RAWSXP, len = (LENGTH(what) + padding));
 	if (!EVP_CipherUpdate(ctx, RAW(res), &len, RAW(what), LENGTH(what))) {

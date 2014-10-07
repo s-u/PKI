@@ -19,6 +19,12 @@ NEWS for PKI package
 	and sign/verify/digest using SHA256.
 	[PR#1, thanks to Siddhartha Bagaria]
 
+    o	bugfix: key length was incorrectly checked when using
+	symmetric ciphers so too short keys were accepted.
+
+    o	bugfix: if the last block was filled during encryption, the
+	necessary additional padding block was not generated. (#8)
+
 
 0.1-1	2013-02-19
     o	added PKI.load.key() and PKI.save.key()
