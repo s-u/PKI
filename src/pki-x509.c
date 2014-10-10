@@ -596,7 +596,7 @@ SEXP PKI_get_subject(SEXP sCert) {
     char *txt = 0;
     PKI_init();
     cert = retrieve_cert(sCert, "");
-    if (X509_NAME_print_ex(mem, X509_get_subject_name(cert), 0, (XN_FLAG_ONELINE | ASN1_STRFLGS_UTF8_CONVERT) & ~ASN1_STRFLGS_ESC_MSB) < 0) {
+    if (X509_NAME_print_ex(mem, X509_get_subject_name(cert), 0, XN_FLAG_RFC2253) < 0) {
       BIO_free(mem);
 	Rf_error("X509_NAME_print_ex failed with %s", ERR_error_string(ERR_get_error(), NULL));
     }
