@@ -22,7 +22,7 @@
   (as used in \code{.ssh/authorized_keys} file)
 }
 \usage{
-PKI.load.key(what, format = c("PEM", "DER"), private, file)
+PKI.load.key(what, format = c("PEM", "DER"), private, file, password="")
 PKI.save.key(key, format = c("PEM", "DER"), private, target)
 PKI.genRSAkey(bits = 2048L)
 PKI.mkRSApubkey(modulus, exponent=65537L, format = c("DER", "PEM", "key"))
@@ -37,6 +37,8 @@ PKI.load.OpenSSH.pubkey(what, first=TRUE, format = c("DER", "PEM", "key"))
     public key (\code{FALSE}) or whichever is available (\code{NA} or missing).}
   \item{file}{filename to load the key from - \code{what} and
     \code{file} are mutually exclusive}
+  \item{password}{string, used only if \code{what} is an encrypted private
+  key as the password to decrypt the key}
   \item{target}{optional connection or a file name to store the result
     in. If missing, the result is just returned form teh function as
     either a character vector (PEM) or a raw vector (DER).}
