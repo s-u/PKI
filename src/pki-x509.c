@@ -497,17 +497,28 @@ SEXP PKI_verify_RSA(SEXP what, SEXP sMD, SEXP sKey, SEXP sig) {
 }
 
 SEXP PKI_load_private_RSA(SEXP what) {
-    EVP_PKEY *key;
+    EVP_PKEY *key = 0;
     BIO *bio_mem;
-    if (TYPEOF(what) != STRSXP || LENGTH(what) < 1)
-	Rf_error("Private key must be a character vector");
-    SEXP b64Key = STRING_ELT(what, 0);
-    PKI_init();
-    bio_mem = BIO_new_mem_buf((void *) CHAR(b64Key), -1);
-    key = PEM_read_bio_PrivateKey(bio_mem, 0, 0, "Can not ask password.");
-    BIO_free(bio_mem);
-    if (!key)
-	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    if (TYPEOF(what) == RAWSXP) { /* assuming binary DER format */
+	RSA *rsa = 0;
+	const unsigned char *ptr;
+	ptr = (const unsigned char *) RAW(what);
+	rsa = d2i_RSAPrivateKey(&rsa, &ptr, LENGTH(what));
+	if (!rsa)
+	    Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+	key = EVP_PKEY_new();
+	EVP_PKEY_assign_RSA(key, rsa);
+    } else if (TYPEOF(what) == STRSXP && LENGTH(what)) {
+	SEXP b64Key = STRING_ELT(what, 0);
+	PKI_init();
+	bio_mem = BIO_new_mem_buf((void *) CHAR(b64Key), -1);
+	key = PEM_read_bio_PrivateKey(bio_mem, 0, 0, "Can not ask password.");
+	BIO_free(bio_mem);
+	if (!key)
+	    Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    } else
+	Rf_error("Private key must be a character or raw vector");
+
     return wrap_EVP_PKEY(key, PKI_KT_PRIVATE);
 }
 
