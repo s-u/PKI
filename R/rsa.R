@@ -18,7 +18,7 @@
 ##  (pkcs-1 1) = rsaEncryption (RFC 3447) --- for use in SubjectPublicKeyInfo
 oid.pkcs.1.rsaEncryption <- as.raw(c(0x2a,0x86,0x48,0x86,0xf7,0x0d,1,1,1))
 
-PKI.load.key <- function(what, format=c("PEM", "DER"), private, file) {
+PKI.load.key <- function(what, format=c("PEM", "DER"), private, file, password="") {
     if (!missing(file) && !missing(what)) stop("what and file are mutually exclusive")
     format <- match.arg(format)
     if (missing(private)) private <- NA
@@ -78,7 +78,7 @@ PKI.load.key <- function(what, format=c("PEM", "DER"), private, file) {
         }
     }
     if (private)
-      .Call(PKI_load_private_RSA, what)
+      .Call(PKI_load_private_RSA, what, password)
     else
       .Call(PKI_load_public_RSA, what)
 }
