@@ -2,7 +2,8 @@ NEWS for PKI package
 
 0.1-3	(under development)
     o	fixed crash when loading private keys introduced by PR#1
-	in (unreleased) 0.1-2
+	in (unreleased) 0.1-2 and bring back the ability to directly
+	read "DER"-encoded private RSA keys.
 
 
 0.1-2	(not released)
