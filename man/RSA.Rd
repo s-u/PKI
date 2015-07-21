@@ -9,10 +9,10 @@
   PKI functions handling RSA keys 
 }
 \description{
-  \code{PKI.load.key} loads an RSA key in PKCS#1 PEM or DER format.
+  \code{PKI.load.key} loads an RSA key in PKCS#1/8 PEM or DER format.
 
   \code{PKI.save.key} creates a PEM or DER representation of a RSA key.
-  
+
   \code{PKI.genRSAkey} generates RSA public/private key pair.
 
   \code{PKI.mkRSApubkey} creates a RSA public key with the supplied
@@ -40,7 +40,7 @@ PKI.load.OpenSSH.pubkey(what, first=TRUE, format = c("DER", "PEM", "key"))
   \item{password}{string, used only if \code{what} is an encrypted private
   key as the password to decrypt the key}
   \item{target}{optional connection or a file name to store the result
-    in. If missing, the result is just returned form teh function as
+    in. If missing, the result is just returned form the function as
     either a character vector (PEM) or a raw vector (DER).}
   \item{bits}{size of the generated key in bits. Must be \code{2 ^ n}
     with integer \code{n > 8}.}
@@ -73,14 +73,24 @@ PKI.load.OpenSSH.pubkey(what, first=TRUE, format = c("DER", "PEM", "key"))
   Simon Urbanek
 }
 \note{
-  The format for private keys in PEM is PKCS#1, but for public keys it
-  is X.509 SubjectPublicKeyInfo (certificate public key). This is
-  consistent with OpenSSL RSA command line tool which uses the same
+  The output format for private keys in PEM is PKCS#1, but for public
+  keys it is X.509 SubjectPublicKeyInfo (certificate public key). This
+  is consistent with OpenSSL RSA command line tool which uses the same
   convention.
 
+  \code{PKI.load.key} can auto-detect the contained format based on
+  the header if `PEM` format is used. In that case it supports PKCS#1
+  (naked RSA key), PKCS#8 (wrapped key with identifier - for public
+  keys X.509 SubjectPublicKeyInfo) and encrypted private key in
+  PKCS#8 (password must be passed to decrypt). `DER` format provides no
+  way to define the type so `private` cannot be `NA` and only the
+  default format (PKCS#1 for private keys and X.509
+  SubjectPublicKeyInfo for public keys) is supported.
+
   The OpenSSH format is one line beginning with \code{"ssh-rsa "}.
-  SSH2 PEM public keys (rfc4716) are supported in \code{PKI.load.key} and the
-  binary payload is the same as the OpenSSH, only with different wrapping.
+  SSH2 PEM public keys (rfc4716) are supported in \code{PKI.load.key}
+  and the binary payload is the same as the OpenSSH, only with
+  different wrapping.
 }
 \seealso{\code{\link{PKI.encrypt}}, \code{\link{PKI.decrypt}}, \code{\link{PKI.pubkey}}}
 \examples{
