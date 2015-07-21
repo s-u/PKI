@@ -5,6 +5,8 @@ NEWS for PKI package
 	in (unreleased) 0.1-2 and bring back the ability to directly
 	read "DER"-encoded private RSA keys.
 
+    o	fix detection of PKCS#8 encrypted private keys in PEM format
+
 
 0.1-2	(not released)
     o	add "DER" format option to PKI.load.cert()

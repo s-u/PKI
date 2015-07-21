@@ -37,8 +37,8 @@ PKI.load.key <- function(what, format=c("PEM", "DER"), private, file, password="
         if (length(rm.ln)) what <- what[-rm.ln]
         if (either || private) {
             ## Check if this is a private key.
-            i <- grep("-BEGIN (RSA )?PRIVATE KEY-", what)
-            j <- grep("-END (RSA )?PRIVATE KEY-", what)
+            i <- grep("-BEGIN (RSA |ENCRYPTED )?PRIVATE KEY-", what)
+            j <- grep("-END (RSA |ENCRYPTED )?PRIVATE KEY-", what)
             if (length(i) >= 1L && length(j) >= 1L && i[1] < j[1]) {
                 ## PEM_read_bio_PrivateKey method takes the base64 encoding with the header.
                 what <- paste(what[i:j], collapse='\n')
