@@ -1,6 +1,7 @@
 #include <Rinternals.h>
 
 #include <string.h>
+#include "asn1.h"
 
 static SEXP decode_ASN1_bytes(unsigned char *d, unsigned int l, unsigned int *ptr) {
     unsigned int i = 0;
@@ -268,4 +269,111 @@ SEXP PKI_asBIGNUMint(SEXP sWhat, SEXP sScalar) {
     Rf_error("unsupported type to convert");
     /* unreachable */
     return R_NilValue;
+}
+
+/*
+* Parse an ASN1_TIME value and return a time_t structure. According to RFC 5280 (http://www.rfc-editor.org/rfc/rfc5280.txt)
+* conforming implementations "MUST always encode certificate validity dates through the year 2049 as UTCTime; 
+* certificate validity dates in 2050 or later MUST be encoded as GeneralizedTime." See section 4.1 of RFC 5280 for the
+* definition of UTCTime and Generalized time, but the crux is that UTCTime uses a two digit year, whereas GeneralizedTime
+* uses a 4 digit year.
+* 
+* This algorithm is based on parsing the character
+* string in ASN1_TIME and extracting the date and time components based on length and results in the string.  It
+* is derived from the publicly posted algorithm here: http://marc.info/?l=openssl-users&m=106781789300592&w=2
+* I use timegm() rather than mktime() to do the conversion to time_t in order to not assume a local time zone during
+* the conversion, but its not clear if timegm() is portable to Windows.  Need to look into that, 
+* possibly proving an implementation for Windows as outlined here: 
+* http://trac.rtmpd.com/browser/trunk/sources/common/src/platform/windows/timegm.cpp
+*/
+time_t getTimeFromASN1(const ASN1_TIME * aTime) {
+    
+    time_t lResult = 0;
+
+	char lBuffer[24];
+	char * pBuffer = lBuffer;
+
+	size_t lTimeLength = aTime->length;
+    
+	char * pString = (char *)aTime->data;
+
+	if (aTime->type == V_ASN1_UTCTIME) {
+		if ((lTimeLength < 11) || (lTimeLength > 17)) {
+			return 0;
+		}
+
+		memcpy(pBuffer, pString, 10);
+		pBuffer += 10;
+		pString += 10;
+	} else {
+		if (lTimeLength < 13) {
+			return 0;
+		}
+
+		memcpy(pBuffer, pString, 12);
+		pBuffer += 12;
+		pString += 12;
+	}
+
+	if ((*pString == 'Z') || (*pString == '-') || (*pString == '+')) {
+		*(pBuffer++) = '0';
+		*(pBuffer++) = '0';
+	} else {
+		*(pBuffer++) = *(pString++);
+		*(pBuffer++) = *(pString++);
+		// Skip any fractional seconds...
+		if (*pString == '.') {
+			pString++;
+			while ((*pString >= '0') && (*pString <= '9')) {
+				pString++;
+			}
+		}
+	}
+
+	*(pBuffer++) = 'Z';
+	*(pBuffer++) = '\0';
+
+	time_t lSecondsFromUCT;
+	if (*pString == 'Z') {
+		lSecondsFromUCT = 0;
+	} else {
+		if ((*pString != '+') && (pString[5] != '-')) {
+			return 0;
+		}
+
+		lSecondsFromUCT = ((pString[1]-'0') * 10 + (pString[2]-'0')) * 60;
+		lSecondsFromUCT += (pString[3]-'0') * 10 + (pString[4]-'0');
+		if (*pString == '-') {
+			lSecondsFromUCT = -lSecondsFromUCT;
+		}
+	}
+
+	struct tm lTime;
+	lTime.tm_sec = ((lBuffer[10] - '0') * 10) + (lBuffer[11] - '0');
+	lTime.tm_min = ((lBuffer[8] - '0') * 10) + (lBuffer[9] - '0');
+	lTime.tm_hour = ((lBuffer[6] - '0') * 10) + (lBuffer[7] - '0');
+	lTime.tm_mday = ((lBuffer[4] - '0') * 10) + (lBuffer[5] - '0');
+	lTime.tm_mon = (((lBuffer[2] - '0') * 10) + (lBuffer[3] - '0')) - 1;
+	lTime.tm_year = ((lBuffer[0] - '0') * 10) + (lBuffer[1] - '0');
+	if (lTime.tm_year < 50) {
+		lTime.tm_year += 100;
+		// RFC 2459
+	}
+	lTime.tm_wday = 0;
+	lTime.tm_yday = 0;
+	lTime.tm_isdst = 0;
+
+	// No DST adjustment requested
+	lResult = timegm(&lTime);
+	if ((time_t)-1 != lResult) {
+		if (0 != lTime.tm_isdst) {
+			lResult -= 3600;
+			// mktime may adjust for DST (OS dependent)
+		}
+		lResult += lSecondsFromUCT;
+	} else {
+		lResult = 0;
+	}
+
+	return lResult;
 }

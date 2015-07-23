@@ -4,6 +4,8 @@
 \alias{PKI.verifyCA}
 \alias{PKI.pubkey}
 \alias{PKI.get.subject}
+\alias{PKI.get.notBefore}
+\alias{PKI.get.notAfter}
 \title{
   Public Key Instraftructure (X509) functions
 }
@@ -17,12 +19,19 @@
   \code{PKI.pubkey} extracts public key from a certificate.  
 
   \code{PKI.get.subject} extracts the subject name from the certificate.
+  
+  \code{PKI.get.notBefore} extracts the notBefore field from the certificate.
+
+  \code{PKI.get.notAfter} extracts the notAfter field from the certificate.
+
 }
 \usage{
 PKI.load.cert(what, format = c("PEM", "DER"), file)
 PKI.verifyCA(certificate, ca)
 PKI.pubkey(certificate)
 PKI.get.subject(certificate)
+PKI.get.notBefore(certificate)
+PKI.get.notAfter(certificate)
 }
 \arguments{
   \item{what}{string, raw vector or connection to load the certificate
@@ -49,6 +58,14 @@ PKI.get.subject(certificate)
   one-line RFC2253 format but in UTF8 encoding instead of MBS escapes.
   NOTE: this is experimantal, we may choose to parse the contents and
   return it in native R form as a named vector instead.
+  
+  \code{PKI.get.notBefore}: POSIXct value containing the datetime 'notBefore'
+  field fromt the certificate.  This represents the earliest time at which the
+  certificate is valid.
+
+  \code{PKI.get.notAfter}: POSIXct value containing the datetime 'notAfter'
+  field fromt the certificate.  This represents the latest time at which the
+  certificate is valid.
 }
 %\references{
 %}
@@ -65,5 +82,7 @@ PKI.get.subject(certificate)
   PKI.verifyCA(my.cert, ca)
   PKI.pubkey(my.cert)
   PKI.get.subject(my.cert)
+  PKI.get.notBefore(my.cert)
+  PKI.get.notAfter(my.cert)
 }
 \keyword{manip}

@@ -621,7 +621,7 @@ SEXP PKI_get_subject(SEXP sCert) {
     char *txt = 0;
     PKI_init();
     cert = retrieve_cert(sCert, "");
-    if (X509_NAME_print_ex(mem, X509_get_subject_name(cert), 0, (XN_FLAG_ONELINE | ASN1_STRFLGS_UTF8_CONVERT) & ~ASN1_STRFLGS_ESC_MSB) < 0) {
+    if (X509_NAME_print_ex(mem, X509_get_subject_name(cert), 0, XN_FLAG_RFC2253) < 0) {
       BIO_free(mem);
 	Rf_error("X509_NAME_print_ex failed with %s", ERR_error_string(ERR_get_error(), NULL));
     }
@@ -635,4 +635,34 @@ SEXP PKI_get_subject(SEXP sCert) {
     UNPROTECT(1);
     BIO_free(mem);
     return res;
+}
+
+/* Return the notBefore date of an X509 Certificate by wrapping the OpenSSL X509_get_notBefore() function. */
+SEXP PKI_get_notBefore(SEXP sCert) {
+    X509 *cert;
+    PKI_init();
+    cert = retrieve_cert(sCert, "");
+    ASN1_TIME *timeASN1;
+    timeASN1 = X509_get_notBefore(cert);
+    time_t result_time;
+    result_time = getTimeFromASN1(timeASN1);
+    SEXP timeSEXP;
+    timeSEXP = PROTECT(ScalarReal(result_time));
+    UNPROTECT(1);
+    return timeSEXP;
+}
+
+/* Return the notAfter date of an X509 Certificate by wrapping the OpenSSL X509_get_notAfter() function. */
+SEXP PKI_get_notAfter(SEXP sCert) {
+    X509 *cert;
+    PKI_init();
+    cert = retrieve_cert(sCert, "");
+    ASN1_TIME *timeASN1;
+    timeASN1 = X509_get_notAfter(cert);
+    time_t result_time;
+    result_time = getTimeFromASN1(timeASN1);
+    SEXP timeSEXP;
+    timeSEXP = PROTECT(ScalarReal(result_time));
+    UNPROTECT(1);
+    return timeSEXP;
 }
