@@ -1,5 +1,5 @@
 Package: PKI
-Version: 0.1-3
+Version: 0.1-4
 Title: Public Key Infrastucture for R Based on the X.509 Standard
 Author: Simon Urbanek <Simon.Urbanek@r-project.org>
 Maintainer: Simon Urbanek <Simon.Urbanek@r-project.org>
