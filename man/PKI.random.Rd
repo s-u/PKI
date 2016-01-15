@@ -4,8 +4,8 @@
   Generate cryptographically strong pseudo-random bytes.
 }
 \description{
-  \code{PKI.random} computes digest sum based on the hash function
-  specified
+  \code{PKI.random} generates \code{n} cryptographically strong
+  pseudo-random bytes.
 }
 \usage{
 PKI.random(n)
