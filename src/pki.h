@@ -15,6 +15,7 @@
 #include <openssl/md5.h>
 #include <openssl/x509.h>
 #include <openssl/ssl.h>
+#include <openssl/rand.h>
 
 #if __APPLE__
 #if defined MAC_OS_X_VERSION_10_7 && MAC_OS_X_VERSION_MIN_REQUIRED >= 1070

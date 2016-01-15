@@ -573,6 +573,18 @@ SEXP PKI_RSAkeygen(SEXP sBits) {
     return wrap_EVP_PKEY(key, PKI_KT_PRIVATE | PKI_KT_PUBLIC);
 }
 
+SEXP PKI_random(SEXP sBytes) {
+    int len = asInteger(sBytes);
+    SEXP res;
+    if (len < 0)
+	Rf_error("invalid number of bytes requested - must be 0 .. 2^32-1");
+    res = allocVector(RAWSXP, len);
+    PKI_init();
+    if (!RAND_bytes((unsigned char*) RAW(res), len))
+	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+    return res;
+}
+
 #if 0 /* FIXME: this requires openssl 1.0 or higher - not acceptable at this point */
 
 #define PKI_MD5    1
