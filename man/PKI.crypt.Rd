@@ -11,14 +11,18 @@
   \code{PKI.decrypt} decrypts a raw vector
 }
 \usage{
-PKI.encrypt(what, key, cipher = NULL)
-PKI.decrypt(what, key, cipher = NULL)
+PKI.encrypt(what, key, cipher = NULL, iv = NULL)
+PKI.decrypt(what, key, cipher = NULL, iv = NULL)
 }
 \arguments{
   \item{what}{raw vector to encrypt/decrypt. It must not exceed the key
     size minus padding}
   \item{key}{key to use for encryption/decryption}
   \item{cipher}{cipher to use for encryption/decryption}
+  \item{iv}{initialization vector for ciphers that use it (e.g.,
+  CBC). \code{NULL} corresponds to all-zeroes IV, otherwise must be
+  either a string or a raw vector with sufficiently many bytes to
+  match the IV length for the cipher.}
 }
 %\details{
 %}

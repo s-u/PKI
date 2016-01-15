@@ -181,7 +181,7 @@ static char buf[8192];
 
 static char cipher_name[32];
 
-static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transient) {
+static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transient, SEXP sIV) {
     EVP_CIPHER_CTX *ctx;
     PKI_init();
     if (inherits(sKey, "symmeric.cipher")) {
@@ -191,7 +191,7 @@ static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transie
     if (TYPEOF(sKey) != RAWSXP && (TYPEOF(sKey) != STRSXP || LENGTH(sKey) < 1))
 	Rf_error("invalid key object");
     else {
-	const char *cipher, *c_key;
+	const char *cipher, *c_key, *c_iv = 0;
 	int key_len;
 	const EVP_CIPHER *type;
 	if (TYPEOF(sCipher) != STRSXP || LENGTH(sCipher) != 1)
@@ -232,6 +232,23 @@ static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transie
 	else if (!strcmp(cipher, "bfcfb"))
 	    type = EVP_bf_cfb();
 	else Rf_error("unknown cipher `%s'", CHAR(STRING_ELT(sCipher, 0)));
+
+	if (TYPEOF(sIV) == STRSXP) {
+	    if (LENGTH(sIV) != 1)
+		Rf_error("invalid IV - if used must be a string (or raw), but is string vector of length %d", (int) LENGTH(sIV));
+	    c_iv = CHAR(STRING_ELT(sIV, 0));
+	    int req_len = EVP_CIPHER_iv_length(type);
+	    int iv_len = strlen(c_iv);
+	    if (iv_len < req_len)
+		Rf_error("insufficient IV - must be %d bytes long", req_len);
+	} else if (TYPEOF(sIV) == RAWSXP) {
+	    c_iv = (const char *) RAW(sIV);
+	    int req_len = EVP_CIPHER_iv_length(type);
+	    if (LENGTH(sIV) < req_len)
+		Rf_error("insufficient IV - must be %d bytes long", req_len);
+	} else if (sIV != R_NilValue)
+	    Rf_error("invalid IV - must be NULL (no/empty IV), a string or a raw vector of sufficient length for the cipher");
+
 	if (TYPEOF(sKey) == STRSXP) {
 	    c_key = CHAR(STRING_ELT(sKey, 0));
 	    key_len = strlen(c_key);
@@ -244,7 +261,7 @@ static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transie
 	ctx = (EVP_CIPHER_CTX*) malloc(sizeof(*ctx));
 	if (!ctx)
 	    Rf_error("cannot allocate memory for cipher");
-	if (!EVP_CipherInit(ctx, type, (unsigned char*) c_key, 0, enc)) {
+	if (!EVP_CipherInit(ctx, type, (unsigned char*) c_key, (unsigned char *) c_iv, enc)) {
 	    free(ctx);
 	    Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
 	}
@@ -261,11 +278,12 @@ static void PKI_free_cipher(SEXP sCipher) {
     }
 }
 
-SEXP PKI_sym_cipher(SEXP sKey, SEXP sCipher, SEXP sEncrypt) {
+/* FIXME: this is exposed as C symbol but not actually used anywhere ... ?!? */
+SEXP PKI_sym_cipher(SEXP sKey, SEXP sCipher, SEXP sEncrypt, SEXP sIV) {
     SEXP res;
     int transient_cipher = 0;
     int do_enc = (asInteger(sEncrypt) != 0) ? 1 : 0;
-    EVP_CIPHER_CTX *ctx = get_cipher(sKey, sCipher, do_enc, &transient_cipher);
+    EVP_CIPHER_CTX *ctx = get_cipher(sKey, sCipher, do_enc, &transient_cipher, sIV);
     if (!transient_cipher)
 	return sCipher;
     res = PROTECT(R_MakeExternalPtr(ctx, R_NilValue, R_NilValue));
@@ -275,7 +293,7 @@ SEXP PKI_sym_cipher(SEXP sKey, SEXP sCipher, SEXP sEncrypt) {
     return res;    
 }
 
-SEXP PKI_encrypt(SEXP what, SEXP sKey, SEXP sCipher) {
+SEXP PKI_encrypt(SEXP what, SEXP sKey, SEXP sCipher, SEXP sIV) {
     SEXP res;
     EVP_PKEY *key;
     RSA *rsa;
@@ -284,7 +302,7 @@ SEXP PKI_encrypt(SEXP what, SEXP sKey, SEXP sCipher) {
 	Rf_error("invalid payload to sign - must be a raw vector");
     if (!inherits(sKey, "public.key") && !inherits(sKey, "private.key")) {
 	int transient_cipher = 0;
-	EVP_CIPHER_CTX *ctx = get_cipher(sKey, sCipher, 1, &transient_cipher);
+	EVP_CIPHER_CTX *ctx = get_cipher(sKey, sCipher, 1, &transient_cipher, sIV);
 	int block_len = EVP_CIPHER_CTX_block_size(ctx);
 	int padding = LENGTH(what) % block_len;
 	/* Note: padding is always required, so if the last block is full, there
@@ -324,7 +342,7 @@ SEXP PKI_encrypt(SEXP what, SEXP sKey, SEXP sCipher) {
     return res;
 }
 
-SEXP PKI_decrypt(SEXP what, SEXP sKey, SEXP sCipher) {
+SEXP PKI_decrypt(SEXP what, SEXP sKey, SEXP sCipher, SEXP sIV) {
     SEXP res;
     EVP_PKEY *key;
     RSA *rsa;
@@ -334,7 +352,7 @@ SEXP PKI_decrypt(SEXP what, SEXP sKey, SEXP sCipher) {
     PKI_init();
     if (!inherits(sKey, "private.key")) {
 	int transient_cipher = 0, fin = 0;
-	EVP_CIPHER_CTX *ctx = get_cipher(sKey, sCipher, 0, &transient_cipher);
+	EVP_CIPHER_CTX *ctx = get_cipher(sKey, sCipher, 0, &transient_cipher, sIV);
 	/* FIXME: ctx will leak on alloc errors for transient ciphers - wrap them first */
 	res = allocVector(RAWSXP, len = LENGTH(what));
 	if (!EVP_CipherUpdate(ctx, RAW(res), &len, RAW(what), LENGTH(what))) {
