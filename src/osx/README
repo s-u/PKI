@@ -1,6 +1,0 @@
-Apple has removed OpenSSL headers from most recent SDKs (from OS X
-10.11 SDK on), although the library is still included in the
-system. This directory contains the missing headers taken from
-http://opensource.apple.com/ for OS X 10.11 (OpenSSL098-59 which is
-based on openssl 0.9.8zg
-
