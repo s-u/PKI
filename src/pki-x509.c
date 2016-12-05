@@ -17,6 +17,13 @@
 /* from init.c */
 void PKI_init();
 
+/* OpenSSL 1.1 has changed APIs - adapt accordingly */
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define EVP_PKEY_get_key_type_(X) EVP_PKEY_type((X)->type)
+#else
+#define EVP_PKEY_get_key_type_(X) EVP_PKEY_base_id(X)
+#endif
+
 static void PKI_free_X509(SEXP ref) {
     X509 *x509 = (X509*) R_ExternalPtrAddr(ref);
     if (x509)
@@ -133,7 +140,7 @@ SEXP PKI_extract_key(SEXP sKey, SEXP sPriv) {
     if (!key)
 	Rf_error("NULL key");
     PKI_init();
-    if (EVP_PKEY_type(key->type) != EVP_PKEY_RSA)
+    if (EVP_PKEY_get_key_type_(key) != EVP_PKEY_RSA)
 	Rf_error("Sorry only RSA keys are supported at this point");
     rsa = EVP_PKEY_get1_RSA(key);
     if (get_priv) {
@@ -258,11 +265,11 @@ static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transie
 	}
 	if (key_len < EVP_CIPHER_key_length(type))
 	    Rf_error("key is too short (%d bytes) for the cipher - need %d bytes", key_len, EVP_CIPHER_key_length(type));
-	ctx = (EVP_CIPHER_CTX*) malloc(sizeof(*ctx));
+	ctx = EVP_CIPHER_CTX_new();
 	if (!ctx)
 	    Rf_error("cannot allocate memory for cipher");
 	if (!EVP_CipherInit(ctx, type, (unsigned char*) c_key, (unsigned char *) c_iv, enc)) {
-	    free(ctx);
+	    EVP_CIPHER_CTX_free(ctx);
 	    Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
 	}
 	if (transient) transient[0] = 1;
@@ -272,10 +279,8 @@ static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transie
 
 static void PKI_free_cipher(SEXP sCipher) {
     EVP_CIPHER_CTX *ctx = (EVP_CIPHER_CTX*) R_ExternalPtrAddr(sCipher);
-    if (ctx) {
-	EVP_CIPHER_CTX_cleanup(ctx);
-	free(ctx);
-    }
+    if (ctx)
+	EVP_CIPHER_CTX_free(ctx);
 }
 
 /* FIXME: this is exposed as C symbol but not actually used anywhere ... ?!? */
@@ -329,7 +334,7 @@ SEXP PKI_encrypt(SEXP what, SEXP sKey, SEXP sCipher, SEXP sIV) {
     key = (EVP_PKEY*) R_ExternalPtrAddr(sKey);
     if (!key)
 	Rf_error("NULL key");
-    if (EVP_PKEY_type(key->type) != EVP_PKEY_RSA)
+    if (EVP_PKEY_get_key_type_(key) != EVP_PKEY_RSA)
 	Rf_error("Sorry only RSA keys are supported at this point");
     rsa = EVP_PKEY_get1_RSA(key);
     if (!rsa)
@@ -375,7 +380,7 @@ SEXP PKI_decrypt(SEXP what, SEXP sKey, SEXP sCipher, SEXP sIV) {
     key = (EVP_PKEY*) R_ExternalPtrAddr(sKey);
     if (!key)
 	Rf_error("NULL key");
-    if (EVP_PKEY_type(key->type) != EVP_PKEY_RSA)
+    if (EVP_PKEY_get_key_type_(key) != EVP_PKEY_RSA)
 	Rf_error("Sorry only RSA keys are supported at this point");
     rsa = EVP_PKEY_get1_RSA(key);
     if (!rsa)
@@ -460,7 +465,7 @@ SEXP PKI_sign_RSA(SEXP what, SEXP sMD, SEXP sKey) {
     if (!key)
 	Rf_error("NULL key");
     PKI_init();
-    if (EVP_PKEY_type(key->type) != EVP_PKEY_RSA)
+    if (EVP_PKEY_get_key_type_(key) != EVP_PKEY_RSA)
 	Rf_error("key must be RSA private key");
     rsa = EVP_PKEY_get1_RSA(key);
     if (!rsa)
@@ -501,7 +506,7 @@ SEXP PKI_verify_RSA(SEXP what, SEXP sMD, SEXP sKey, SEXP sig) {
     key = (EVP_PKEY*) R_ExternalPtrAddr(sKey);
     if (!key)
 	Rf_error("NULL key");
-    if (EVP_PKEY_type(key->type) != EVP_PKEY_RSA)
+    if (EVP_PKEY_get_key_type_(key) != EVP_PKEY_RSA)
 	Rf_error("key must be RSA public or private key");
     rsa = EVP_PKEY_get1_RSA(key);
     if (!rsa)
@@ -565,9 +570,31 @@ SEXP PKI_RSAkeygen(SEXP sBits) {
     if (bits < 512)
 	Rf_error("invalid key size");
     PKI_init();
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
     rsa = RSA_generate_key(bits, 65537, 0, 0);
     if (!rsa)
 	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
+#else  /* How to make simple things really complicated ... */
+    rsa = RSA_new();
+    if (!rsa)
+	Rf_error("cannot allocate RSA key: %s", ERR_error_string(ERR_get_error(), NULL));
+    {
+        BIGNUM *e = BN_new();
+	if (!e) {
+            RSA_free(rsa);
+	    Rf_error("cannot allocate exponent: %s", ERR_error_string(ERR_get_error(), NULL));
+        }
+	BN_set_word(e, 65537);
+	if (RSA_generate_key_ex(rsa, bits, e, NULL) <= 0) {
+            BN_free(e);
+	    RSA_free(rsa);
+	    Rf_error("cannot generate key: %s", ERR_error_string(ERR_get_error(), NULL));
+        }
+	BN_free(e);
+    }
+#endif
+
     key = EVP_PKEY_new();
     EVP_PKEY_assign_RSA(key, rsa);
     return wrap_EVP_PKEY(key, PKI_KT_PRIVATE | PKI_KT_PUBLIC);
