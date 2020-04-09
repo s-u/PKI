@@ -1,6 +1,14 @@
 NEWS for PKI package
 
-0.1-5	(under development)
+0.1-6
+    o	add work-around for macOS SDKs that remove libcrypto
+
+
+0.1-5.1	(CRAN NMU courtesy of Brian Ripley)
+    o	added explicit C code for symbol registration
+
+
+0.1-5
     o	use configure/autoconf
 
     o	macOS: fetch OpenSSL headers from Apple if not available
