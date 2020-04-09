@@ -112,6 +112,13 @@ rawToChar(PKI.decrypt(x, key))
 PKI.digest(PKI.save.key(key, "DER", private=FALSE))
 
 # convert OpenSSH public key to PEM format
-PKI.load.OpenSSH.pubkey("ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEAuvOXqfZ3pJeWeqyQOIXZwmgM1RBqPUmVx3XgntpA+YtOZjKfuoJSpg3LhBuI/wXx8L2QZXNFibvX4qX2qoYsbHvkz2uonA3F7HRhCR/BJURR5nT135znVqALZo328v86HDsVWYR2/JzY1X8GI2R2iKUMGXF0hVuRphdwLB735CU= foo@mycomputer", format="PEM")
+# (the example is split into multiple lines just
+#  so it is readable in the documentation, in reality you can
+#  simply use the full line from is_rsa.pub without gsub)
+PKI.load.OpenSSH.pubkey(gsub("\n","",
+  "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEAuvOXqfZ3pJeWeqyQOIXZwmg
+M1RBqPUmVx3XgntpA+YtOZjKfuoJSpg3LhBuI/wXx8L2QZXNFibvX4qX2qoYsb
+Hvkz2uonA3F7HRhCR/BJURR5nT135znVqALZo328v86HDsVWYR2/JzY1X8GI2R
+2iKUMGXF0hVuRphdwLB735CU= foo@mycomputer"), format="PEM")
 }
 \keyword{manip}
