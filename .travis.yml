@@ -6,8 +6,6 @@ matrix:
   - os: linux
     dist: bionic
     sudo: required
-    addons:
-      packages:
-      - openssl-dev
-  - os: osx
-    osx_image: xcode10.1
+# The R support on Travis is currently broken on macos, disable for now
+#  - os: osx
+#    osx_image: xcode10.1
