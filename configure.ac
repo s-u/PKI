@@ -53,8 +53,26 @@ AC_CHECK_HEADER([openssl/ssl.h],,[
 # check RSA/crypto
 AC_CHECK_HEADER([openssl/rsa.h],
 [AC_SEARCH_LIBS(RSA_generate_key_ex, [crypto ssl openssl],,
-  [AC_MSG_ERROR([Cannot find usable crypto library])])],
-[AC_MSG_ERROR([Failed to find usable crypto library. Please install openssl-dev or equivalent and/or set PKG_LIBS if not in default location.])]
+  [ works=no
+    ## more Darwin woes - Catalina SDK removes crypto, so we have to force
+    ## the .dylib itself from the system since -l only searches in the SDK
+    if test "`uname -s`" = Darwin; then
+      AC_MSG_NOTICE([Regular linking failed, trying force-link crypto from system location:])
+      for lib in /usr/lib/libcrypto.dylib; do
+        save_LIBS="$LIBS"
+        LIBS="$LIBS $lib"
+	AC_LINK_IFELSE([AC_LANG_FUNC_LINK_TRY(RSA_generate_key_ex)], [works=yes], [LIBS="${save_LIBS}"])
+	if test $works = yes; then
+	   AC_MSG_NOTICE([Found working library: $lib])
+	   break;
+	fi
+      done
+    fi
+    if test "$works" = no; then
+      AC_MSG_ERROR([Cannot find usable crypto library. Please install openssl-dev or equivalent and/or set PKG_LIBS if not in default location.])
+    fi
+  ])],
+[AC_MSG_ERROR([Failed to find usable ssl headers. Please install openssl-dev or equivalent and/or set PKG_LIBS/PKG_CPPFLAGS if not in default location.])]
 )
 
 # check SSL support

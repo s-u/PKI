@@ -3339,11 +3339,78 @@ if test "$ac_res" != no; then :
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
 
 else
-  as_fn_error $? "Cannot find usable crypto library" "$LINENO" 5
+   works=no
+    ## more Darwin woes - Catalina SDK removes crypto, so we have to force
+    ## the .dylib itself from the system since -l only searches in the SDK
+    if test "`uname -s`" = Darwin; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: Regular linking failed, trying force-link crypto from system location:" >&5
+$as_echo "$as_me: Regular linking failed, trying force-link crypto from system location:" >&6;}
+      for lib in /usr/lib/libcrypto.dylib; do
+        save_LIBS="$LIBS"
+        LIBS="$LIBS $lib"
+	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+/* Define RSA_generate_key_ex to an innocuous variant, in case <limits.h> declares RSA_generate_key_ex.
+   For example, HP-UX 11i <limits.h> declares gettimeofday.  */
+#define RSA_generate_key_ex innocuous_RSA_generate_key_ex
+
+/* System header to define __stub macros and hopefully few prototypes,
+    which can conflict with char RSA_generate_key_ex (); below.
+    Prefer <limits.h> to <assert.h> if __STDC__ is defined, since
+    <limits.h> exists even on freestanding compilers.  */
+
+#ifdef __STDC__
+# include <limits.h>
+#else
+# include <assert.h>
+#endif
+
+#undef RSA_generate_key_ex
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char RSA_generate_key_ex ();
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined __stub_RSA_generate_key_ex || defined __stub___RSA_generate_key_ex
+choke me
+#endif
+
+int
+main ()
+{
+return RSA_generate_key_ex ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  works=yes
+else
+  LIBS="${save_LIBS}"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+	if test $works = yes; then
+	   { $as_echo "$as_me:${as_lineno-$LINENO}: Found working library: $lib" >&5
+$as_echo "$as_me: Found working library: $lib" >&6;}
+	   break;
+	fi
+      done
+    fi
+    if test "$works" = no; then
+      as_fn_error $? "Cannot find usable crypto library. Please install openssl-dev or equivalent and/or set PKG_LIBS if not in default location." "$LINENO" 5
+    fi
+
 fi
 
 else
-  as_fn_error $? "Failed to find usable crypto library. Please install openssl-dev or equivalent and/or set PKG_LIBS if not in default location." "$LINENO" 5
+  as_fn_error $? "Failed to find usable ssl headers. Please install openssl-dev or equivalent and/or set PKG_LIBS/PKG_CPPFLAGS if not in default location." "$LINENO" 5
 
 fi
 
