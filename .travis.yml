@@ -14,3 +14,5 @@ matrix:
 # The R support on Travis is currently broken on macos, disable for now
 #  - os: osx
 #    osx_image: xcode10.1
+after_success:
+  - Rscript -e 'covr::codecov()'
