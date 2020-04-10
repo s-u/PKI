@@ -104,7 +104,8 @@ PKI.save.key <- function(key, format=c("PEM", "DER"), private=NA, target) {
       target <- file(target, "wb")
       on.exit(close(target))
     }
-    if (inherits(target, "connection")) writeBin(der, target)
+    if (inherits(target, "connection"))
+        writeBin(c(der), target)
   }
   return (der)
 }
