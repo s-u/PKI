@@ -18,4 +18,4 @@ matrix:
 #  - os: osx
 #    osx_image: xcode10.1
 after_success:
-  - Rscript -e 'covr::codecov()'
+  - Rscript -e 'covr::codecov(type="all")'
