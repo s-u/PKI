@@ -1,8 +1,6 @@
 language: r
 r:
   - devel
-sudo: false
-disable_homebrew: true
 # dependency detection in R Travis is buggy, it fails to install gmp
 # and we also want covr
 r_packages:
@@ -13,9 +11,7 @@ matrix:
   include:
   - os: linux
     dist: bionic
-    sudo: required
-# The R support on Travis is currently broken on macos, disable for now
-#  - os: osx
-#    osx_image: xcode10.1
-after_success:
-  - Rscript -e 'covr::codecov(type="all")'
+    after_success: Rscript -e 'covr::codecov(type="all")'
+  - os: osx
+    latex: false
+    #disable_homebrew: true
