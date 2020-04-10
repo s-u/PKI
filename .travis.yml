@@ -4,7 +4,10 @@ r:
 sudo: false
 disable_homebrew: true
 # dependency detection in R Travis is buggy, it fails to install gmp
-r_packages: gmp
+# and we also want covr
+r_packages:
+  - gmp
+  - covr
 cache: packages
 matrix:
   include:
