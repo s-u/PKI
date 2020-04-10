@@ -49,11 +49,11 @@ SEXP PKI_load_DER_X509(SEXP what) {
 	Rf_error("%s", ERR_error_string(ERR_get_error(), NULL));
     res = PROTECT(R_MakeExternalPtr(x509, R_NilValue, R_NilValue));
     R_RegisterCFinalizerEx(res, PKI_free_X509, TRUE);
-    setAttrib(res, install("class"), mkString("X509cert"));
+    setAttrib(res, R_ClassSymbol, PROTECT(mkString("X509cert")));
     /* we add the content to the cert in case someone tries to serialize it */
-    ia = install("crt.DER");
+    ia = PROTECT(install("crt.DER"));
     setAttrib(res, ia, what);
-    UNPROTECT(1);
+    UNPROTECT(3);
     return res;
 }
 
@@ -293,9 +293,9 @@ SEXP PKI_sym_cipher(SEXP sKey, SEXP sCipher, SEXP sEncrypt, SEXP sIV) {
 	return sCipher;
     res = PROTECT(R_MakeExternalPtr(ctx, R_NilValue, R_NilValue));
     R_RegisterCFinalizerEx(res, PKI_free_cipher, TRUE);
-    setAttrib(res, install("class"), mkString("symmetric.cipher"));
-    UNPROTECT(1);
-    return res;    
+    setAttrib(res, R_ClassSymbol, PROTECT(mkString("symmetric.cipher")));
+    UNPROTECT(2);
+    return res;
 }
 
 SEXP PKI_encrypt(SEXP what, SEXP sKey, SEXP sCipher, SEXP sIV) {
