@@ -1,5 +1,10 @@
 language: r
+r:
+  - devel
 sudo: false
+disable_homebrew: true
+# dependency detection in R Travis is buggy, it fails to install gmp
+r_packages: gmp
 cache: packages
 matrix:
   include:
