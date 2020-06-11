@@ -8,7 +8,7 @@ generate cryptographically safe random bytes.
 
 For more information and notes on using various types keys, see the [Wiki](https://github.com/s-u/PKI/wiki). The main RForge page is at [RForge.net/PKI](https://rforge.net/PKI)
 
-[![CRAN](https://img.shields.io/cran/v/PKI?color=%236b0&label=CRAN)](https://cran.r-project.org/package=PKI)
+[![CRAN](https://rforge.net/do/cransvg/PKI)](https://cran.r-project.org/package=PKI)
 [![RForge](https://rforge.net/do/versvg/PKI)](https://RForge.net/PKI)
 [![CI](https://travis-ci.com/s-u/PKI.svg?branch=master)](https://travis-ci.com/github/s-u/PKI)
 
