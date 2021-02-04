@@ -10,12 +10,20 @@ if test -z "${R_HOME}"; then
   exit 1
 fi
 
-CC=`${R_HOME}/bin/R CMD config CC`;
-CXX=`${R_HOME}/bin/R CMD config CXX`;
-CPPFLAGS="${CPPFLAGS} ${PKG_CPPFLAGS}"
-CFLAGS=`${R_HOME}/bin/R CMD config CFLAGS`
-CXXFLAGS=`${R_HOME}/bin/R CMD config CXXFLAGS`
+RBIN="${R_HOME}/bin/R"
+
+# pick all flags for testing from R
+: ${CC=`"${RBIN}" CMD config CC`}
+: ${CFLAGS=`"${RBIN}" CMD config CFLAGS`}
+: ${CPPFLAGS=`"${RBIN}" CMD config CPPFLAGS`}
+: ${LDFLAGS=`"${RBIN}" CMD config LDFLAGS`}
+: ${CPP="$CC -E"}
+
+# honor PKG_xx overrides
 LIBS="${LIBS} ${PKG_LIBS}"
+# for CPPFLAGS we will superfluously double R's flags
+# since we'll set PKG_CPPFLAGS with this, but that shouldn't hurt
+CPPFLAGS="${CPPFLAGS} ${PKG_CPPFLAGS}"
 
 AC_SUBST(R_HOME)
 
