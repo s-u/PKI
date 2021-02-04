@@ -1,5 +1,8 @@
 NEWS for PKI package
 
+0.1-8
+    o	improve configure to use R's CPPFLAGS
+
 0.1-7
     o	fix a bug in PKI.save.key when writing binary DER key
 	to a file or connection
