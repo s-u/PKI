@@ -731,7 +731,6 @@ SEXP PKI_get_subject(SEXP sCert) {
 }
 
 #include <time.h>
-#include <openssl/x509v3.h>
 
 static char cibuf[512];
 
