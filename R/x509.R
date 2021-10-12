@@ -20,7 +20,8 @@ PKI.load.cert <- function(what, format = c("PEM", "DER"), file) {
     .Call(PKI_load_DER_X509, what)
 }
 
-PKI.verifyCA <- function(certificate, ca) .Call(PKI_verify_cert, ca, certificate)
+PKI.verifyCA <- function(certificate, ca, default=FALSE, partial=FALSE)
+    .Call(PKI_verify_cert, ca, certificate, default, partial)
 
 PKI.pubkey <- function(certificate) .Call(PKI_cert_public_key, certificate)
 

@@ -8,7 +8,7 @@ extern SEXP decode_ASN1(SEXP sWhat);
 extern SEXP encode_ASN1(SEXP sWhat);
 extern SEXP PKI_asBIGNUMint(SEXP sWhat, SEXP sScalar);
 extern SEXP PKI_load_DER_X509(SEXP what);
-extern SEXP PKI_verify_cert(SEXP sCA, SEXP sCert);
+extern SEXP PKI_verify_cert(SEXP sCA, SEXP sCert, SEXP sDefault, SEXP sPart);
 extern SEXP PKI_extract_key(SEXP sKey, SEXP sPriv);
 extern SEXP PKI_cert_public_key(SEXP sCert);
 extern SEXP PKI_encrypt(SEXP what, SEXP sKey, SEXP sCipher, SEXP sIV);
@@ -41,7 +41,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"PKI_raw2hex",          (DL_FUNC) &PKI_raw2hex,          3},
     {"PKI_sign_RSA",         (DL_FUNC) &PKI_sign_RSA,         3},
     {"PKI_verify_RSA",       (DL_FUNC) &PKI_verify_RSA,       4},
-    {"PKI_verify_cert",      (DL_FUNC) &PKI_verify_cert,      2},
+    {"PKI_verify_cert",      (DL_FUNC) &PKI_verify_cert,      4},
     {"decode_ASN1",          (DL_FUNC) &decode_ASN1,          1},
     {"encode_ASN1",          (DL_FUNC) &encode_ASN1,          1},
     {NULL, NULL, 0}

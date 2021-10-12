@@ -82,7 +82,7 @@ static X509 *retrieve_cert(SEXP obj, const char *c_name) {
     return cacrt;
 }
 
-SEXP PKI_verify_cert(SEXP sCA, SEXP sCert) {
+SEXP PKI_verify_cert(SEXP sCA, SEXP sCert, SEXP sDefault, SEXP sPart) {
     X509 *cert;
     X509_STORE *store;
     X509_STORE_CTX *ctx;
@@ -90,15 +90,49 @@ SEXP PKI_verify_cert(SEXP sCA, SEXP sCert) {
     PKI_init();
     cert = retrieve_cert(sCert, "");
     store = X509_STORE_new();
+
+    if (Rf_asInteger(sDefault) > 0)
+	X509_STORE_set_default_paths(store);
+
+    /* highly recommended (and default since OpenSSL 1.1.0) to avoid
+       breakage of chains like the famous Let's Encrypt 2021 sanfu
+       or Sectigo */
+    X509_STORE_set_flags(store, X509_V_FLAG_TRUSTED_FIRST);
+
+    if (Rf_asInteger(sPart) > 0)
+	X509_STORE_set_flags(store, X509_V_FLAG_PARTIAL_CHAIN);
+
     if (TYPEOF(sCA) == VECSXP) {
 	int i;
 	for (i = 0; i < LENGTH(sCA); i++)
 	    X509_STORE_add_cert(store, retrieve_cert(VECTOR_ELT(sCA, i),"CA "));
-    } else
+    } else if (sCA != R_NilValue)
 	X509_STORE_add_cert(store, retrieve_cert(sCA, "CA "));
+
     ctx = X509_STORE_CTX_new();
     X509_STORE_CTX_init(ctx, store, cert, NULL);
     rv = X509_verify_cert(ctx);
+
+#if 0 /* we could print of even return the chain, this is how ... */
+    {
+	int j;
+
+	STACK_OF(X509) *chain = X509_STORE_CTX_get1_chain(ctx);
+	int num_untrusted = X509_STORE_CTX_get_num_untrusted(ctx);
+	Rprintf("Chain:\n");
+	for (j = 0; j < sk_X509_num(chain); j++) {
+	    X509 *cert = sk_X509_value(chain, j);
+	    X509_NAME *sname = X509_get_subject_name(cert);
+	    char buf[256];
+	    Rprintf("depth=%d: %s", j, X509_NAME_oneline(sname, buf, sizeof(buf) - 1));
+	    if (j < num_untrusted)
+		Rprintf(" (untrusted)");
+	    Rprintf("\n");
+	}
+	sk_X509_pop_free(chain, X509_free);
+    }
+#endif
+
     X509_STORE_CTX_free(ctx);
     X509_STORE_free(store);
     return ScalarLogical((rv == 1) ? TRUE : FALSE);
