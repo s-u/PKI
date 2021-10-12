@@ -1,7 +1,18 @@
 NEWS for PKI package
 
+0.1-9
+    o	add default= and partial= arguments to PKI.verifyCA()
+
+    o	add PKI.get.cert.info() and informative print() method
+	for certificates.
+
+    o	fix PKI.verify.tar to support certificates stored
+	directly instead of wrapped inside ASN1 bit string.
+
+
 0.1-8
     o	improve configure to use R's CPPFLAGS
+
 
 0.1-7
     o	fix a bug in PKI.save.key when writing binary DER key

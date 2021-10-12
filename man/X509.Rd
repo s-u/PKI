@@ -17,12 +17,15 @@
   \code{PKI.pubkey} extracts public key from a certificate.  
 
   \code{PKI.get.subject} extracts the subject name from the certificate.
+
+  \code{PKI.get.cert.info} decodes information from the certificate.
 }
 \usage{
 PKI.load.cert(what, format = c("PEM", "DER"), file)
 PKI.verifyCA(certificate, ca, default = FALSE, partial = FALSE)
 PKI.pubkey(certificate)
 PKI.get.subject(certificate)
+PKI.get.cert.info(certificate)
 }
 \arguments{
   \item{what}{string, raw vector or connection to load the certificate

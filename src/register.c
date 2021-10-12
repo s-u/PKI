@@ -22,6 +22,7 @@ extern SEXP PKI_RSAkeygen(SEXP sBits);
 extern SEXP PKI_random(SEXP sBytes);
 extern SEXP PKI_sign(SEXP what, SEXP sKey, SEXP sMD, SEXP sPad);
 extern SEXP PKI_get_subject(SEXP sCert);
+extern SEXP PKI_get_cert_info(SEXP sCert);
 extern SEXP PKI_raw2hex(SEXP sRaw, SEXP sSep, SEXP sUpp);
 
 
@@ -34,6 +35,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"PKI_encrypt",          (DL_FUNC) &PKI_encrypt,          4},
     {"PKI_extract_key",      (DL_FUNC) &PKI_extract_key,      2},
     {"PKI_get_subject",      (DL_FUNC) &PKI_get_subject,      1},
+    {"PKI_get_cert_info",    (DL_FUNC) &PKI_get_cert_info,    1},
     {"PKI_load_DER_X509",    (DL_FUNC) &PKI_load_DER_X509,    1},
     {"PKI_load_private_RSA", (DL_FUNC) &PKI_load_private_RSA, 2},
     {"PKI_load_public_RSA",  (DL_FUNC) &PKI_load_public_RSA,  1},

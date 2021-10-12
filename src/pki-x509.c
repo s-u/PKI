@@ -715,17 +715,71 @@ SEXP PKI_get_subject(SEXP sCert) {
     PKI_init();
     cert = retrieve_cert(sCert, "");
     if (X509_NAME_print_ex(mem, X509_get_subject_name(cert), 0, (XN_FLAG_ONELINE | ASN1_STRFLGS_UTF8_CONVERT) & ~ASN1_STRFLGS_ESC_MSB) < 0) {
-      BIO_free(mem);
+	BIO_free(mem);
 	Rf_error("X509_NAME_print_ex failed with %s", ERR_error_string(ERR_get_error(), NULL));
     }
     len = BIO_get_mem_data(mem, &txt);
     if (len < 0) {
-      BIO_free(mem);
-      Rf_error("cannot get memory buffer, %s", ERR_error_string(ERR_get_error(), NULL));
+	BIO_free(mem);
+	Rf_error("cannot get memory buffer, %s", ERR_error_string(ERR_get_error(), NULL));
     }
     res = PROTECT(allocVector(STRSXP, 1));
     SET_STRING_ELT(res, 0, mkCharLenCE(txt, len, CE_UTF8));
     UNPROTECT(1);
     BIO_free(mem);
+    return res;
+}
+
+#include <time.h>
+#include <openssl/x509v3.h>
+
+static char cibuf[512];
+
+static double ASN1_TIME2d(const ASN1_TIME* time) {
+    int pday, psec;
+    ASN1_TIME *epoch;
+    double d;
+
+    epoch = ASN1_TIME_set(0, 0);
+    ASN1_TIME_diff(&pday, &psec, epoch, time);
+    ASN1_STRING_free(epoch);
+
+    d = (double) pday;
+    d *= 86400.0;
+    d += (double) psec;
+    return d;
+}
+
+SEXP PKI_get_cert_info(SEXP sCert) {
+#define FPLEN 20 /* size of the fingerprint - here SHA1 */
+    const EVP_MD *digest = EVP_sha1();
+    SEXP res = PROTECT(Rf_allocVector(VECSXP, 5));
+    int rc;
+    unsigned len;
+    X509 *cert;
+    double *ts;
+    PKI_init();
+    cert = retrieve_cert(sCert, "");
+    cibuf[sizeof(cibuf) - 1] = 0;
+    *cibuf = 0;
+    X509_NAME_oneline(X509_get_subject_name(cert), cibuf, sizeof(cibuf) - 1);
+    SET_VECTOR_ELT(res, 0, Rf_mkString(cibuf));
+    X509_NAME_oneline(X509_get_issuer_name(cert), cibuf, sizeof(cibuf) - 1);
+    SET_VECTOR_ELT(res, 1, Rf_mkString(cibuf));
+
+    len = FPLEN;
+    rc = X509_digest(cert, digest, (unsigned char*) cibuf, &len);
+    if (rc && len == FPLEN) {
+	SEXP sFP;
+	SET_VECTOR_ELT(res, 2, (sFP = allocVector(RAWSXP, len)));
+	memcpy(RAW(sFP), cibuf, len);
+    }
+
+    ts = REAL(SET_VECTOR_ELT(res, 3, Rf_allocVector(REALSXP, 2)));
+    ts[0] = ASN1_TIME2d(X509_get_notBefore(cert));
+    ts[1] = ASN1_TIME2d(X509_get_notAfter(cert));
+
+    SET_VECTOR_ELT(res, 4, Rf_ScalarLogical(X509_check_ca(cert)));
+    UNPROTECT(1);
     return res;
 }

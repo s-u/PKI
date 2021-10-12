@@ -26,3 +26,5 @@ PKI.verifyCA <- function(certificate, ca, default=FALSE, partial=FALSE)
 PKI.pubkey <- function(certificate) .Call(PKI_cert_public_key, certificate)
 
 PKI.get.subject <- function(certificate) .Call(PKI_get_subject, certificate)
+
+PKI.get.cert.info <- function(certificate) .Call(PKI_get_cert_info, certificate)
