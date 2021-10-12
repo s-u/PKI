@@ -73,9 +73,14 @@ assert("ASN.1 encode/decode",
 info("Tar ball signing")
 tmpfn <- c(fn.pub.der, fn.pub.pem, fn.priv.der, fn.priv.pem)
 fn <- tempfile()
-tar(fn, tmpfn, "none")
+## on some systems using abs paths can break 100 byte limit
+## so we must do this in the tempdir
+wd <- getwd()
+td <- tempdir()
+setwd(td)
+tar(fn, basename(tmpfn), "none")
 PKI.sign.tar(fn, key)
 PKI.verify.tar(fn, key)
+setwd(wd)
 
 unlink(c(fn, tmpfn))
-
