@@ -105,10 +105,11 @@ PKI.get.cert.info(certificate)
 %\seealso{
 %}
 \examples{
-  ca <- PKI.load.cert(file=system.file("certs", "RForge-ca.crt", package="PKI"))
-  my.cert <- PKI.load.cert(readLines(system.file("certs", "demo.crt", package="PKI")))
+  (ca <- PKI.load.cert(file=system.file("certs", "RForge-ca.crt", package="PKI")))
+  (my.cert <- PKI.load.cert(readLines(system.file("certs", "demo.crt", package="PKI"))))
   PKI.verifyCA(my.cert, ca)
   PKI.pubkey(my.cert)
   PKI.get.subject(my.cert)
+  PKI.get.cert.info(my.cert)
 }
 \keyword{manip}

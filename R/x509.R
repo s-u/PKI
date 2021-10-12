@@ -27,4 +27,9 @@ PKI.pubkey <- function(certificate) .Call(PKI_cert_public_key, certificate)
 
 PKI.get.subject <- function(certificate) .Call(PKI_get_subject, certificate)
 
-PKI.get.cert.info <- function(certificate) .Call(PKI_get_cert_info, certificate)
+PKI.get.cert.info <- function(certificate) {
+  i <- .Call(PKI_get_cert_info, certificate)
+  names(i) <- c("subject", "issuer", "fingerprint", "validity", "ca")
+  i[[4]] <- .POSIXct(i[[4]])
+  i
+}
