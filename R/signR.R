@@ -103,8 +103,10 @@ PKI.verify.tar <- function(tarfile, key, silent = FALSE, enforce.cert = FALSE) {
         sig.key <- try(PKI.load.key(der, "DER", FALSE), silent=TRUE)
         if (!inherits(sig.key, "public.key"))
             sig.key <- NULL
-    } else if (length(asn) > 2L && identical(ASN1.type(asn[[3]]), 3L)) { ## certificate
-        sig.cert <- try(PKI.load.cert(asn[[3]], "DER"), silent=TRUE)
+    } else if (length(asn) > 2L) { ## certificate
+        ## either direct payload (BITSTRING) or decoded already (that's what it should be)
+        der <- if (identical(ASN1.type(asn[[3]]), 3L)) asn[[3]] else ASN1.encode(asn[[3]])
+        sig.cert <- try(PKI.load.cert(der, "DER"), silent=TRUE)
         if (!inherits(sig.cert, "X509cert"))
             sig.cert <- NULL
         else
