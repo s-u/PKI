@@ -311,6 +311,7 @@ static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transie
     }
 }
 
+#if 0
 static void PKI_free_cipher(SEXP sCipher) {
     EVP_CIPHER_CTX *ctx = (EVP_CIPHER_CTX*) R_ExternalPtrAddr(sCipher);
     if (ctx)
@@ -318,7 +319,7 @@ static void PKI_free_cipher(SEXP sCipher) {
 }
 
 /* FIXME: this is exposed as C symbol but not actually used anywhere ... ?!? */
-#if 0 /* it is not longer registered anyway ... */
+/* it is not longer registered anyway ... */
 SEXP PKI_sym_cipher(SEXP sKey, SEXP sCipher, SEXP sEncrypt, SEXP sIV) {
     SEXP res;
     int transient_cipher = 0;
