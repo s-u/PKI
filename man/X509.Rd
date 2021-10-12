@@ -4,6 +4,7 @@
 \alias{PKI.verifyCA}
 \alias{PKI.pubkey}
 \alias{PKI.get.subject}
+\alias{PKI.get.cert.info}
 \title{
   Public Key Instraftructure (X509) functions
 }
