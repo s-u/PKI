@@ -16,6 +16,70 @@ static const char *mm(const char *haystack, size_t hlen, const char *needle, siz
     return 0;
 }
 
+/* returns 0-63 for valid input or 127 on EOF */
+static unsigned char val(const char **src, const char *se) {
+    while (*src < se) {
+	char c = **src;
+        src[0]++;
+        if (c >= 'A' && c <= 'Z') return c - 'A';
+	if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+        if (c >= '0' && c <= '9') return c - '0' + 52;
+	if (c == '+') return 62;
+        if (c == '/') return 63;
+        if (c == '=')
+            break;
+        /* we loop as to skip any blanks, newlines etc. */
+    }
+    return 127; /* EOF */
+}
+
+/* src = dst is permissible since decoded is always shorter (4 -> 3)
+   if t = NULL then the required size is returned instead */
+static R_xlen_t base64decode(const char *src, R_xlen_t len, void *dst, R_xlen_t max_len) {
+    unsigned char *t = (unsigned char*) dst, *end = t ? (t + max_len) : 0;
+    const char *se = src + len;
+    R_xlen_t est = 0;
+    while ((src < se) && (!t || t < end)) {
+        unsigned char v = val(&src, se);
+        if (v > 63) break;
+        if (t)
+	    *t = v << 2;
+        v = val(&src, se);
+        if (v < 64) {
+	    if (t) {
+		*t |= v >> 4;
+		if (++t == end) {
+		    if (src < se && *src == '=')
+			break; /* correct end at padding */
+		    return -1;
+		}
+		*t = v << 4;
+	    } else est++; /* 1 complete, 1 pending */
+            v = val(&src, se);
+            if (v < 64) {
+		if (t) {
+		    *t |= v >> 2;
+		    if (++t == end) {
+			if (src < se && *src == '=')
+			    break;
+			return -1;
+		    }
+		    *t = v << 6;
+		} else est++; /* 2 complete, 1 pending */
+                v = val(&src, se);
+		if (v < 64) {
+		    if (t) {
+			*t |= v & 0x3f;
+			t++;
+		    } else est++; /* 3 complete */
+		}
+            }
+        }
+    }
+    Rprintf("> delta = %ld, est = %ld\n", (long) (t ? (t - (unsigned char*) dst) : 0), (long) est);
+    return t ? ((R_xlen_t) (t - (unsigned char*) dst)) : est;
+}
+
 static char buf[512];
 
 /* PEM specifies "-----BEGIN (.*)-----" and so does OpenPGP,
@@ -152,8 +216,9 @@ SEXP PKI_split_PEM(SEXP sWhat) {
     return res;
 }
 
-SEXP PKI_PEM_part(SEXP sWhat, SEXP sBody) {
+SEXP PKI_PEM_part(SEXP sWhat, SEXP sBody, SEXP sDecode) {
     int body = (Rf_asInteger(sBody) == 0) ? 0 : 1;
+    int decode = (Rf_asInteger(sDecode) == 0) ? 0 : 1;
     SEXP res;
     const char *src, *se, *c, *he;
     if (TYPEOF(sWhat) != RAWSXP)
@@ -190,8 +255,22 @@ SEXP PKI_PEM_part(SEXP sWhat, SEXP sBody) {
        c  = first byte that is body */
     if (body) {
 	if (c < se) {
-	    res = Rf_allocVector(RAWSXP, se - c);
-	    memcpy(RAW(res), c, XLENGTH(res));
+	    if (decode) {
+		R_xlen_t dsize = base64decode(c, se - c, 0, 0);
+		if (dsize < 0) {
+		    Rf_warning("Invalid base64 content, returning empty vector");
+		    dsize = 0;
+		}
+		res = Rf_allocVector(RAWSXP, dsize);
+		if (dsize > 0) {
+		    /* this should never fail since we determined the size ahead of time ... */
+		    if (base64decode(c, se - c, RAW(res), XLENGTH(res)) != XLENGTH(res))
+			Rf_warning("Decoding base64 error, result may be incomplete");
+		}
+	    } else {
+		res = Rf_allocVector(RAWSXP, se - c);
+		memcpy(RAW(res), c, XLENGTH(res));
+	    }
 	    return res;
 	} else {
 	    return Rf_allocVector(RAWSXP, 0);
