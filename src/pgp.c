@@ -159,13 +159,6 @@ SEXP PKI_parse_pgp_key(SEXP sWhat, SEXP sRaw) {
 	    memcpy(RAW(ne), p.data, p.len);
 	    UNPROTECT(1);
 	} else {
-	    Rprintf("Type: %02x, length=%d\n", p.type, p.len);
-	    {
-		int i = 0;
-		while (i < p.len && i < 16)
-		    Rprintf(" %02x", p.data[i++]);
-		Rprintf("\n");
-	    }
 	    switch (p.type) {
 	    case 6: {
 		const unsigned char *c = p.data;

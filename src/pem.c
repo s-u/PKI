@@ -76,7 +76,6 @@ static R_xlen_t base64decode(const char *src, R_xlen_t len, void *dst, R_xlen_t 
             }
         }
     }
-    Rprintf("> delta = %ld, est = %ld\n", (long) (t ? (t - (unsigned char*) dst) : 0), (long) est);
     return t ? ((R_xlen_t) (t - (unsigned char*) dst)) : est;
 }
 
@@ -84,7 +83,7 @@ static char buf[512];
 
 /* PEM specifies "-----BEGIN (.*)-----" and so does OpenPGP,
    but SSH2 uses "---- BEGIN (.*) ----" so we allow "----[- ]BEGIN" */
-SEXP PKI_split_PEM(SEXP sWhat) {
+SEXP PKI_PEM_split(SEXP sWhat) {
     SEXP res = PROTECT(CONS(R_NilValue, R_NilValue)), tail = 0;
 
     if (TYPEOF(sWhat) == STRSXP) { /* line-by-line */
@@ -213,7 +212,7 @@ SEXP PKI_split_PEM(SEXP sWhat) {
 	Rf_error("Invalid input type, must be either character of raw vector");
 
     UNPROTECT(1);
-    return res;
+    return (CAR(res) == R_NilValue) ? R_NilValue : res;
 }
 
 SEXP PKI_PEM_part(SEXP sWhat, SEXP sBody, SEXP sDecode) {
