@@ -1,0 +1,204 @@
+#include <Rinternals.h>
+#include <string.h>
+
+/* sadly memmem is not POSIX and our payload is not guatanteed to the 0-terminated
+   (and we can't terminate it since it is const char*) so we have to use a silly stopgap */
+static const char *mm(const char *haystack, size_t hlen, const char *needle, size_t nlen) {
+    const char *c = haystack;
+    size_t left;
+    if (!nlen) return 0;
+    while (((left = (hlen - (c - haystack))) >= nlen) /* needle must fit */ &&
+	   (c = memchr(c, needle[0], left))) {
+	if (!memcmp(c, needle, nlen))
+	    return c;
+	c++;
+    }
+    return 0;
+}
+
+static char buf[512];
+
+/* PEM specifies "-----BEGIN (.*)-----" and so does OpenPGP,
+   but SSH2 uses "---- BEGIN (.*) ----" so we allow "----[- ]BEGIN" */
+SEXP PKI_split_PEM(SEXP sWhat) {
+    SEXP res = PROTECT(CONS(R_NilValue, R_NilValue)), tail = 0;
+
+    if (TYPEOF(sWhat) == STRSXP) { /* line-by-line */
+	R_xlen_t n = XLENGTH(sWhat), i = 0;
+	while (i < n - 1) {
+	    const char *c = CHAR(STRING_ELT(sWhat, i));
+	    if (!strncmp(c, "-----BEGIN ", 11) ||
+		!strncmp(c, "---- BEGIN ", 11)) {
+		const char *tag = c + 11;
+		const char *e = strstr(c + 11, "----");
+		if (e) {
+		    const char *te = e;
+		    R_xlen_t i0 = i + 1;
+		    size_t cmplen;
+		    SEXP sTag;
+		    while (te > tag && te[-1] == ' ') te--;
+		    if (te - tag > 256)
+			Rf_error("Armor tag too long on line %ld: %s", (long) (i + 1), tag);
+		    sTag = PROTECT(Rf_ScalarString(mkCharLenCE(tag, te - tag, CE_UTF8)));
+		    cmplen = te - tag + 9;
+		    /* construct the tail tag by s/BEGIN/END/ */
+		    memcpy(buf, tag - 11, 5);
+		    memcpy(buf + 5, "END ", 4);
+		    memcpy(buf + 9, tag, te - tag);
+		    buf[te - tag + 9] = 0;
+		    while (i < n) {
+			c = CHAR(STRING_ELT(sWhat, i));
+			if (!strncmp(c, buf, cmplen))
+			    break;
+			i++;
+		    }
+		    if (i < n) {
+			R_xlen_t j = i0;
+			R_xlen_t psize = 0;
+			/* compute total size */
+			while (j < i) {
+			    psize += strlen(CHAR(STRING_ELT(sWhat, j))) + 1;
+			    j++;
+			}
+			if (psize) {
+			    SEXP chunk = PROTECT(Rf_allocVector(RAWSXP, psize));
+			    unsigned char *d = (unsigned char *)RAW(chunk);
+			    j = i0;
+			    while (j < i) {
+				const char *cc = CHAR(STRING_ELT(sWhat, j));
+				size_t clen = strlen(cc);
+				memcpy(d, cc, clen);
+				d += clen;
+				*(d++) = '\n';
+				j++;
+			    }
+			    if (tail) {
+				SEXP nt = PROTECT(CONS(chunk, R_NilValue));
+				SETCDR(tail, nt);
+				UNPROTECT(1);
+				tail = nt;
+			    } else {
+				SETCAR(res, chunk);
+				tail = res;
+			    }
+			    Rf_setAttrib(chunk, Rf_install("tag"), sTag);
+			    UNPROTECT(1);
+			}
+		    } /* i < n (= end found) */
+		    UNPROTECT(1); /* sTag */
+		} /* if end ---- found */
+	    } /* if ----[- ]BEGIN found */
+	    i++;
+	} /* while i < n */
+    } else if (TYPEOF(sWhat) == RAWSXP) {
+	const char *src = (const char *) RAW(sWhat);
+	const char *se  = src + XLENGTH(sWhat), *c = src;
+	while (c + 30 < se) { /* it has to fit both armor guards */
+	    c = memchr(c, '-', se - c);
+	    if (!c) break;
+	    if (!strncmp(c, "-----BEGIN ", 11) ||
+		!strncmp(c, "---- BEGIN ", 11)) {
+		const char *tag = c + 11;
+		const char *e = mm(c + 11, se - c - 11, "----", 4);
+		c += 11;
+		if (e) {
+		    const char *te = e;
+		    SEXP sTag;
+		    size_t cmplen;
+		    while (te > tag && te[-1] == ' ') te--;
+		    if (te - tag > 256)
+			Rf_error("Armor tag too long @%ld", (long) (tag - src));
+		    sTag = PROTECT(Rf_ScalarString(mkCharLenCE(tag, te - tag, CE_UTF8)));
+		    cmplen = te - tag + 9;
+		    /* construct the tail tag by s/BEGIN/END/ */
+		    memcpy(buf, tag - 11, 5);
+		    memcpy(buf + 5, "END ", 4);
+		    memcpy(buf + 9, tag, te - tag);
+		    /* find EOL */
+		    while (e < se && (*e != '\r' && *e != '\n')) e++;
+		    if (e < se - 1 && *e == '\r' && e[1] == '\n') e++; /* handle \r\n as one */
+		    if (e < se - 12) { /* need a lot more ... (payload, END etc.) */
+			/* look for end of armor */
+			const char *epos = mm(e + 1, (se - e) - 1, buf, cmplen);
+			if (epos) {
+			    R_xlen_t psize = (R_xlen_t) ((epos - e) - 1);
+			    SEXP chunk = PROTECT(Rf_allocVector(RAWSXP, psize));
+			    unsigned char *d = (unsigned char *) RAW(chunk);
+			    memcpy(d, e + 1, psize);
+			    if (tail) {
+				SEXP nt = PROTECT(CONS(chunk, R_NilValue));
+				SETCDR(tail, nt);
+				UNPROTECT(1);
+				tail = nt;
+			    } else {
+				SETCAR(res, chunk);
+				tail = res;
+			    }
+			    Rf_setAttrib(chunk, Rf_install("tag"), sTag);
+			    UNPROTECT(1);
+			    
+			    c = epos + (te - tag + 9); /* but c behind the armor */			    
+			} /* if (epos) */
+		    }
+		    UNPROTECT(1); /* sTag */
+		}
+	    }
+	    while (c < se && *c == '-') c++;	    
+	}
+    } else
+	Rf_error("Invalid input type, must be either character of raw vector");
+
+    UNPROTECT(1);
+    return res;
+}
+
+SEXP PKI_PEM_part(SEXP sWhat, SEXP sBody) {
+    int body = (Rf_asInteger(sBody) == 0) ? 0 : 1;
+    SEXP res;
+    const char *src, *se, *c, *he;
+    if (TYPEOF(sWhat) != RAWSXP)
+	Rf_error("Input must be a raw vector");
+    src = (const char *) RAW(sWhat);
+    se = src + XLENGTH(sWhat);
+    /* Note that this is merely a heuristic, each format has slightly
+       different definitions, but mostly base64 doesn't include :
+       and headers must either have : or a leading whitespace */
+    he = c = src;
+    while (c < se) {
+	const char *le = c;
+	int has_col = 0;
+	he = c;
+	while (le < se && (*le != '\r' && *le != '\n')) {
+	    if (*le == ':') has_col = 1;
+	    le++;
+	}
+	/* it is has no :, doesn't start with WS and has some content
+	   then it must be body */
+	if (!has_col && *c != ' ' && *c != '\t' && le > c)
+	    break;
+	if (le == c) { /* end of headers, empty line, skip to next */
+	    while (le < se && (*le == '\n' || *le == '\r')) le++;
+	    c = le;
+	    break;
+	}
+	if (le + 1 < se && *le == '\r' && le[1] == '\n')
+	    le++;
+	/* move past EOL */
+	c = le + 1;
+    }
+    /* he = first byte that is not a header
+       c  = first byte that is body */
+    if (body) {
+	if (c < se) {
+	    res = Rf_allocVector(RAWSXP, se - c);
+	    memcpy(RAW(res), c, XLENGTH(res));
+	    return res;
+	} else {
+	    return Rf_allocVector(RAWSXP, 0);
+	}
+    }
+    res = Rf_allocVector(RAWSXP, he - src);
+    if (XLENGTH(res))
+	memcpy(RAW(res), src, XLENGTH(res));
+    return res;
+}
