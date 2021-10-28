@@ -198,6 +198,80 @@ static SEXP bigz2bignum(const unsigned int *bz) {
     return res;
 }
 
+SEXP PKI_int2oid(SEXP sVal) {
+    int np = 0;
+    unsigned char buf[128], *dst = buf, *e = buf + sizeof(buf) - 6;
+    const unsigned int *v;
+    SEXP res;
+    int i = 2, n;
+    if (TYPEOF(sVal) == REALSXP) {
+	sVal = PROTECT(coerceVector(sVal, INTSXP));
+	np++;
+    }
+    if (TYPEOF(sVal) != INTSXP)
+	Rf_error("OID specification must be a vector of integers");
+    v = (const unsigned int*) INTEGER(sVal);
+    n = LENGTH(sVal);
+    if (n < 3) Rf_error("Invalid OID");
+    *(dst++) = v[0] * 40 + v[1];
+    while (i < n && dst < e) {
+	unsigned int x = v[i++];
+	if (x > 127) { /* since we have only 32-bits that measn at most 5 encoded bytes */
+	    char rev[8], *r = rev;
+	    while (x > 0) {
+		*(r++) = (x & 0x7f) | 0x80;
+		x >>= 7;
+	    }
+	    while (r > rev)
+		*(dst++) = *(--r);
+	    dst[-1] &= 0x7f; /* clear the last MSB */
+	} else *(dst++) = x;
+    }
+    res = Rf_allocVector(RAWSXP, dst - buf);
+    memcpy(RAW(res), buf, LENGTH(res));
+    if (np) UNPROTECT(1);
+    return res;
+}
+
+SEXP PKI_oid2int(SEXP sVal) {
+    SEXP res;
+    int len = 2;
+    int i = 1, n;
+    const unsigned char *r, *re;
+    unsigned int *iv;
+    if (TYPEOF(sVal) != RAWSXP)
+	Rf_error("Input must be a raw vector");
+    r = (const unsigned char*) RAW(sVal);
+    n = LENGTH(sVal);
+    re = r + n;
+    /* count the total number of entries (w/o the leading two) */
+    while (i < n)
+	if ((r[i++] & 0x80) == 0) len++;
+    res = Rf_allocVector(INTSXP, len);
+    iv = (unsigned int*) INTEGER(res);
+    iv[0] = r[0] / 40;
+    iv[1] = r[0] - (40 * iv[0]);
+    r++;
+    i = 2;
+    while (i < len) {
+	unsigned int v = 0;
+	while(r < re) {
+	    unsigned int nx = *(r++);
+	    v |= (nx & 0x7f);
+	    if ((nx & 0x80) == 0)
+		break;
+	    v <<= 7;
+	}
+	iv[i++] = v;
+    }
+    return res;
+}
+
+/* BIGNUM is a big-endian integer with the additional
+   rule that the first MSB is the sign, so for positive
+   integers (like here) the first byte must be <128
+   hence a leading 00 is needed if the first byte
+   was to start with the MSB set */
 static SEXP long2bignum(unsigned long v) {
     unsigned char buf[9], *c = buf + 8;
     SEXP res;
