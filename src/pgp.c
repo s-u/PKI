@@ -28,7 +28,7 @@ static int parse1(ppacket_t *p, const unsigned char *r, const unsigned char *e) 
 	    type = h & 0x3f;
 	    if (r[0] < 192) { /* one - byte length */
 		len = *(r++);
-	    } else if (r[0] >= 192 & r[0] < 224) {
+	    } else if (r[0] >= 192 && r[0] < 224) {
 		if (r + 2 <= e) {
 		    trunp = 1;
 		    break;
@@ -141,14 +141,14 @@ static SEXP parse_mpi(ppacket_t *p, int vlf) {
    vectors with "type" attributes, each containing one packet.
 */
 SEXP PKI_parse_pgp_key(SEXP sWhat, SEXP sRaw) {
-    const unsigned char *r, *b, *e;
+    const unsigned char *r, *e;
     int raw = Rf_asInteger(sRaw) ? 1 : 0;
     SEXP res = PROTECT(raw ? CONS(R_NilValue, R_NilValue) : allocVector(VECSXP, 5)), rt = 0, tys = 0;
     SEXP lastKey = R_NilValue;
 
     if (TYPEOF(sWhat) != RAWSXP)
 	Rf_error("Invalid input, must be a raw vector");
-    b = r = (const unsigned char *) RAW(sWhat);
+    r = (const unsigned char *) RAW(sWhat);
     e = r + XLENGTH(sWhat);
 
     while (r < e) {
