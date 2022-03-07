@@ -1,5 +1,9 @@
 NEWS for PKI package
 
+0.1-10
+    o	minor change of flags for UCRT Windows
+
+
 0.1-9
     o	add default= and partial= arguments to PKI.verifyCA()
 
