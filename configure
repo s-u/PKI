@@ -657,6 +657,7 @@ CPPFLAGS
 LDFLAGS
 CFLAGS
 CC
+PKGCONFIG
 PKG_LIBS
 PKG_CPPFLAGS
 OPENSSL_INCLUDES
@@ -710,6 +711,7 @@ target_alias
 OPENSSL_INCLUDES
 PKG_CPPFLAGS
 PKG_LIBS
+PKGCONFIG
 CC
 CFLAGS
 LDFLAGS
@@ -1335,6 +1337,8 @@ Some influential environment variables:
   PKG_CPPFLAGS
               additional pre-processor flags
   PKG_LIBS    additional linker library flags
+  PKGCONFIG   command to use for flags detection if none are supplied,
+              defaults to pkg-config
   CC          C compiler command
   CFLAGS      C compiler flags
   LDFLAGS     linker flags, e.g. -L<lib dir> if you have libraries in a
@@ -2242,6 +2246,7 @@ RBIN="${R_HOME}/bin/R"
 : ${CPPFLAGS=`"${RBIN}" CMD config CPPFLAGS`}
 : ${LDFLAGS=`"${RBIN}" CMD config LDFLAGS`}
 : ${CPP="$CC -E"}
+: ${PKGCONFIG=pkg-config}
 
 # honor PKG_xx overrides
 LIBS="${LIBS} ${PKG_LIBS}"
@@ -2254,8 +2259,39 @@ CPPFLAGS="${CPPFLAGS} ${PKG_CPPFLAGS}"
 
 
 
+
+
 if test "x${OPENSSL_INCLUDES}" != x; then
    CPPFLAGS="${CPPFLAGS} -I${OPENSSL_INCLUDES}"
+else
+   if test x"${PKG_CPPFLAGS}" = x -a x"${PKG_LIBS}" = x -a x"$PKGCONFIG" != x; then
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $PKGCONFIG" >&5
+printf %s "checking for $PKGCONFIG... " >&6; }
+      if $PKGCONFIG --version >/dev/null 2>&1; then
+         { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+         { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether it knows about openssl" >&5
+printf %s "checking whether it knows about openssl... " >&6; }
+         if $PKGCONFIG openssl; then
+            { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+	    PC_CFLAGS=`$PKGCONFIG --cflags openssl`
+	    PC_LIBS=`$PKGCONFIG --libs openssl`
+	    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: CFLAGS: ${PC_CFLAGS}" >&5
+printf "%s\n" "$as_me: CFLAGS: ${PC_CFLAGS}" >&6;}
+	    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: LIBS: ${PC_LIBS}" >&5
+printf "%s\n" "$as_me: LIBS: ${PC_LIBS}" >&6;}
+	    CPPFLAGS="${CPPFLAGS} ${PC_CFLAGS}"
+	    LIBS="${LIBS} ${PC_LIBS}"
+	 else
+	    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+	 fi
+      else
+         { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+      fi
+   fi
 fi
 
 # Checks for programs.
