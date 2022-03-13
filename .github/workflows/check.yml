@@ -16,7 +16,7 @@ jobs:
         include:
         - os: windows-2022
           r-version: devel-ucrt
-        - os: windows-lastest
+        - os: windows-latest
           r-version: release
 
     steps:
