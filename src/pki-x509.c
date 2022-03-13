@@ -225,6 +225,7 @@ static char cipher_name[32];
 static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transient, SEXP sIV) {
     EVP_CIPHER_CTX *ctx;
     PKI_init();
+
     if (inherits(sKey, "symmeric.cipher")) {
 	if (transient) transient[0] = 0;
 	return (EVP_CIPHER_CTX*) R_ExternalPtrAddr(sCipher);
@@ -265,13 +266,29 @@ static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transie
 	else if (!strcmp(cipher, "aes256ofb"))
 	    type = EVP_aes_256_ofb();
 	else if (!strcmp(cipher, "blowfish") || !strcmp(cipher, "bfcbc"))
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	    type = EVP_CIPHER_fetch(PKI_ossl_ctx, "BF-CBC", NULL);
+#else
 	    type = EVP_bf_cbc();
+#endif
 	else if (!strcmp(cipher, "bfecb"))
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	    type = EVP_CIPHER_fetch(PKI_ossl_ctx, "BF-ECB", NULL);
+#else
 	    type = EVP_bf_ecb();
+#endif
 	else if (!strcmp(cipher, "bfofb"))
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	    type = EVP_CIPHER_fetch(PKI_ossl_ctx, "BF-OFB", NULL);
+#else
 	    type = EVP_bf_ofb();
+#endif
 	else if (!strcmp(cipher, "bfcfb"))
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	    type = EVP_CIPHER_fetch(PKI_ossl_ctx, "BF-CFB", NULL);
+#else
 	    type = EVP_bf_cfb();
+#endif
 	else Rf_error("unknown cipher `%s'", CHAR(STRING_ELT(sCipher, 0)));
 
 	if (TYPEOF(sIV) == STRSXP) {

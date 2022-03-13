@@ -20,6 +20,13 @@
 #include <openssl/x509_vfy.h>
 #include <openssl/x509v3.h>
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#include <openssl/provider.h>
+
+/* shared library context (from init.c) */
+extern OSSL_LIB_CTX *PKI_ossl_ctx;
+#endif
+
 #if __APPLE__
 #if defined MAC_OS_X_VERSION_10_7 && MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
 /* use accelerated crypto on OS X instead of OpenSSL crypto */
