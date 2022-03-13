@@ -18,6 +18,7 @@ RBIN="${R_HOME}/bin/R"
 : ${CPPFLAGS=`"${RBIN}" CMD config CPPFLAGS`}
 : ${LDFLAGS=`"${RBIN}" CMD config LDFLAGS`}
 : ${CPP="$CC -E"}
+: ${PKGCONFIG=pkg-config}
 
 # honor PKG_xx overrides
 LIBS="${LIBS} ${PKG_LIBS}"
@@ -30,8 +31,31 @@ AC_SUBST(R_HOME)
 AC_ARG_VAR([OPENSSL_INCLUDES],[optional path to the include directory for OpenSSL headers])
 AC_ARG_VAR([PKG_CPPFLAGS],[additional pre-processor flags])
 AC_ARG_VAR([PKG_LIBS],[additional linker library flags])
+AC_ARG_VAR([PKGCONFIG],[command to use for flags detection if none are supplied, defaults to pkg-config])
+
 if test "x${OPENSSL_INCLUDES}" != x; then
    CPPFLAGS="${CPPFLAGS} -I${OPENSSL_INCLUDES}"
+else
+   if test x"${PKG_CPPFLAGS}" = x -a x"${PKG_LIBS}" = x -a x"$PKGCONFIG" != x; then
+      AC_MSG_CHECKING([for $PKGCONFIG])
+      if $PKGCONFIG --version >/dev/null 2>&1; then
+         AC_MSG_RESULT(yes)
+         AC_MSG_CHECKING([whether it knows about openssl])
+         if $PKGCONFIG openssl; then
+            AC_MSG_RESULT(yes)
+	    PC_CFLAGS=`$PKGCONFIG --cflags openssl`
+	    PC_LIBS=`$PKGCONFIG --libs openssl`
+	    AC_MSG_NOTICE([CFLAGS: ${PC_CFLAGS}])
+	    AC_MSG_NOTICE([LIBS: ${PC_LIBS}])
+	    CPPFLAGS="${CPPFLAGS} ${PC_CFLAGS}"
+	    LIBS="${LIBS} ${PC_LIBS}"
+	 else
+	    AC_MSG_RESULT(no)
+	 fi
+      else
+         AC_MSG_RESULT(no)
+      fi
+   fi
 fi
 
 # Checks for programs.
