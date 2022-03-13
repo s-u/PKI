@@ -26,9 +26,9 @@ PKI.sign.tar <- function(tarfile, key, certificate, output=tarfile) {
     magic <- readBin(file, raw(), n = 3)
     if (all(magic[1:2] == c(31, 139)) || all(magic[1:2] == c(31, 157)))
         io <- gzfile
-    else if (rawToChar(magic[1:3]) == "BZh") 
+    else if (all(magic[1:3] == c(0x42, 0x5a, 0x68))) # "BZh"
         io <- bzfile
-    else if (rawToChar(magic[1:5]) == "\xfd7zXZ") 
+    else if (all(magic[1:5] == c(0xfd, 0x37, 0x7a, 0x58, 0x5a))) # "\xfd7zXZ"
         io <- xzfile
     close(file)
     file <- NULL
