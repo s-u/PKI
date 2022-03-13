@@ -1,5 +1,13 @@
 NEWS for PKI package
 
+0.1-11
+    o	add PKI.info() which returns information about the
+	underlying engine.
+
+    o	add support for OpenSSL >= 3.0.0 (#26)
+	Thanks to Steve Langasek for analysis and patch.
+
+
 0.1-10
     o	minor change of flags for UCRT Windows
 

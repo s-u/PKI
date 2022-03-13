@@ -1,5 +1,5 @@
 useDynLib(PKI, .registration = TRUE)
-export(PKI.load.cert, PKI.verifyCA, PKI.verify, PKI.sign, PKI.pubkey, PKI.encrypt, PKI.decrypt, PKI.genRSAkey, PKI.digest, PKI.save.key, PKI.load.key, raw2hex, ASN1.encode, ASN1.decode, ASN1.item, ASN1.type, as.BIGNUMint, PKI.mkRSApubkey, PKI.load.OpenSSH.pubkey, PKI.sign.tar, PKI.verify.tar, PKI.get.subject, PKI.get.cert.info, PKI.random, as.oid, is.oid, oid)
+export(PKI.load.cert, PKI.verifyCA, PKI.verify, PKI.sign, PKI.pubkey, PKI.encrypt, PKI.decrypt, PKI.genRSAkey, PKI.digest, PKI.save.key, PKI.load.key, raw2hex, ASN1.encode, ASN1.decode, ASN1.item, ASN1.type, as.BIGNUMint, PKI.mkRSApubkey, PKI.load.OpenSSH.pubkey, PKI.sign.tar, PKI.verify.tar, PKI.get.subject, PKI.get.cert.info, PKI.random, PKI.info, as.oid, is.oid, oid)
 import(base64enc)
 S3method(print, X509cert)
 S3method(print, oid)

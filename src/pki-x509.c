@@ -1,5 +1,7 @@
 #include "pki.h"
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #define USE_RINTERNALS 1
 #include <Rinternals.h>
@@ -97,10 +99,14 @@ SEXP PKI_verify_cert(SEXP sCA, SEXP sCert, SEXP sDefault, SEXP sPart) {
     /* highly recommended (and default since OpenSSL 1.1.0) to avoid
        breakage of chains like the famous Let's Encrypt 2021 sanfu
        or Sectigo */
+#ifdef X509_V_FLAG_TRUSTED_FIRST
     X509_STORE_set_flags(store, X509_V_FLAG_TRUSTED_FIRST);
+#endif
 
+#ifdef X509_V_FLAG_PARTIAL_CHAIN
     if (Rf_asInteger(sPart) > 0)
 	X509_STORE_set_flags(store, X509_V_FLAG_PARTIAL_CHAIN);
+#endif
 
     if (TYPEOF(sCA) == VECSXP) {
 	int i;
@@ -757,6 +763,10 @@ static double ASN1_TIME2d(const ASN1_TIME* time) {
     ASN1_TIME *epoch;
     double d;
 
+#if OPENSSL_VERSION_NUMBER < 0x10002000L
+    Rf_warning("OpenSSL is too old and does not support ASN1 time differences");
+    return NA_REAL;
+#else
     epoch = ASN1_TIME_set(0, 0);
     ASN1_TIME_diff(&pday, &psec, epoch, time);
     ASN1_STRING_free(epoch);
@@ -765,6 +775,7 @@ static double ASN1_TIME2d(const ASN1_TIME* time) {
     d *= 86400.0;
     d += (double) psec;
     return d;
+#endif
 }
 
 SEXP PKI_get_cert_info(SEXP sCert) {
@@ -797,6 +808,47 @@ SEXP PKI_get_cert_info(SEXP sCert) {
     ts[1] = ASN1_TIME2d(X509_get_notAfter(cert));
 
     SET_VECTOR_ELT(res, 4, Rf_ScalarLogical(X509_check_ca(cert)));
+    UNPROTECT(1);
+    return res;
+}
+
+/* NOTE: we are intentionally not using macros since thay may not match the
+         actual run-time version. The only exception is OPENSSL_VERSION_TEXT
+	 where we have no other choice */
+SEXP PKI_engine_info() {
+    char sver[48];
+    const char *names[] = { "engine", "version", "description", "" };
+    SEXP res = PROTECT(mkNamed(VECSXP, names));
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+    unsigned long ver = OpenSSL_version_num();
+#else
+    unsigned long ver = OPENSSL_VERSION_NUMBER;
+#endif
+#ifdef LIBRESSL_VERSION_NUMBER
+    SET_VECTOR_ELT(res, 0, mkString("libressl"));
+#else
+    SET_VECTOR_ELT(res, 0, mkString("openssl"));
+#endif
+    sver[sizeof(sver) - 1] = 0;
+    snprintf(sver, sizeof(sver) - 1, "%u.%u", (unsigned int) (ver >> 28), (unsigned int) ((ver >> 20) & 255));
+    SET_VECTOR_ELT(res, 1, ScalarReal(atof(sver)));
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    SET_VECTOR_ELT(res, 2, mkString(OpenSSL_version(OPENSSL_FULL_VERSION_STRING)));
+#else
+#   ifdef OPENSSL_VERSION_TEXT
+    SET_VECTOR_ELT(res, 2, mkString(OPENSSL_VERSION_TEXT));
+#   else
+    snprintf(sver, sizeof(sver) - 1, "%s %d.%d.%d%c",
+#      ifdef LIBRESSL_VERSION_NUMBER
+	     "LibreSSL",
+#      else
+	     "OpenSSL",
+#      endif
+	     (unsigned int) (ver >> 28), (unsigned int) ((ver >> 20) & 255),
+	     (unsigned int) ((ver >> 12) & 255), (char) (((ver >> 8) & 31) + 0x60));
+    SET_VECTOR_ELT(res, 2, mkString(sver));
+#   endif
+#endif
     UNPROTECT(1);
     return res;
 }
