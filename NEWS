@@ -7,8 +7,14 @@ NEWS for PKI package
     o	add support for OpenSSL >= 3.0.0 (#26)
 	Thanks to Steve Langasek for analysis and patch.
 
-    o	PKI.sign.tar() avoid the use of strings for compression
+    o	PKI.sign.tar() avoids the use of strings for compression
 	detection as it can fail in some locales. (#27)
+
+    o	added support for PKGCONFIG which defaults to pkg-config
+	and will be used to auto-detect compiler flags if they
+	are not provided in PKG_* or OPENSSL_INCLUDES. This
+	behavior can be disabled by explicitly setting
+	PKGCONFIG to an empty string.
 
 
 0.1-10
