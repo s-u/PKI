@@ -7,6 +7,9 @@ NEWS for PKI package
     o	add support for OpenSSL >= 3.0.0 (#26)
 	Thanks to Steve Langasek for analysis and patch.
 
+    o	PKI.sign.tar() avoid the use of strings for compression
+	detection as it can fail in some locales. (#27)
+
 
 0.1-10
     o	minor change of flags for UCRT Windows
