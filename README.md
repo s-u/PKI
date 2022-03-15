@@ -1,7 +1,7 @@
 # PKI
 ## Public Key Infrastucture for R based on the X.509 standard
 
-This package provides tools related to encruption, decryption, signing, management of keys,
+This package provides tools related to encryption, decryption, signing, management of keys,
 certificates and public key infrastructure. It also provides tools such as
 [PKI.random](https://rforge.net/doc/packages/PKI/PKI.random.html) to
 generate cryptographically safe random bytes.
@@ -10,7 +10,7 @@ For more information and notes on using various types keys, see the [Wiki](https
 
 [![CRAN](https://rforge.net/do/cransvg/PKI)](https://cran.r-project.org/package=PKI)
 [![RForge](https://rforge.net/do/versvg/PKI)](https://RForge.net/PKI)
-[![CI](https://travis-ci.com/s-u/PKI.svg?branch=master)](https://travis-ci.com/github/s-u/PKI)
+[![check](https://github.com/s-u/PKI/actions/workflows/check.yml/badge.svg)](https://github.com/s-u/PKI/actions/workflows/check.yml)
 
 To install the CRAN version, use simply
 
