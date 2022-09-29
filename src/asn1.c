@@ -229,7 +229,7 @@ SEXP PKI_int2oid(SEXP sVal) {
     }
     res = Rf_allocVector(RAWSXP, dst - buf);
     memcpy(RAW(res), buf, LENGTH(res));
-    if (np) UNPROTECT(1);
+    UNPROTECT(np);
     return res;
 }
 
