@@ -43,33 +43,33 @@ static R_xlen_t base64decode(const char *src, R_xlen_t len, void *dst, R_xlen_t 
         unsigned char v = val(&src, se);
         if (v > 63) break;
         if (t)
-	    *t = v << 2;
+	    *t = (unsigned char) (v << 2);
         v = val(&src, se);
         if (v < 64) {
 	    if (t) {
-		*t |= v >> 4;
+		*t |= (unsigned char) (v >> 4);
 		if (++t == end) {
 		    if (src < se && *src == '=')
 			break; /* correct end at padding */
 		    return -1;
 		}
-		*t = v << 4;
+		*t = (unsigned char) (v << 4);
 	    } else est++; /* 1 complete, 1 pending */
             v = val(&src, se);
             if (v < 64) {
 		if (t) {
-		    *t |= v >> 2;
+		    *t |= (unsigned char) (v >> 2);
 		    if (++t == end) {
 			if (src < se && *src == '=')
 			    break;
 			return -1;
 		    }
-		    *t = v << 6;
+			   *t = (unsigned char) (v << 6);
 		} else est++; /* 2 complete, 1 pending */
                 v = val(&src, se);
 		if (v < 64) {
 		    if (t) {
-			*t |= v & 0x3f;
+			*t |= (unsigned char) (v & 0x3f);
 			t++;
 		    } else est++; /* 3 complete */
 		}
@@ -102,7 +102,7 @@ SEXP PKI_PEM_split(SEXP sWhat) {
 		    while (te > tag && te[-1] == ' ') te--;
 		    if (te - tag > 256)
 			Rf_error("Armor tag too long on line %ld: %s", (long) (i + 1), tag);
-		    sTag = PROTECT(Rf_ScalarString(mkCharLenCE(tag, te - tag, CE_UTF8)));
+		    sTag = PROTECT(Rf_ScalarString(mkCharLenCE(tag, (int) (te - tag), CE_UTF8)));
 		    cmplen = te - tag + 9;
 		    /* construct the tail tag by s/BEGIN/END/ */
 		    memcpy(buf, tag - 11, 5);
@@ -171,7 +171,7 @@ SEXP PKI_PEM_split(SEXP sWhat) {
 		    while (te > tag && te[-1] == ' ') te--;
 		    if (te - tag > 256)
 			Rf_error("Armor tag too long @%ld", (long) (tag - src));
-		    sTag = PROTECT(Rf_ScalarString(mkCharLenCE(tag, te - tag, CE_UTF8)));
+		    sTag = PROTECT(Rf_ScalarString(mkCharLenCE(tag, (int) (te - tag), CE_UTF8)));
 		    cmplen = te - tag + 9;
 		    /* construct the tail tag by s/BEGIN/END/ */
 		    memcpy(buf, tag - 11, 5);

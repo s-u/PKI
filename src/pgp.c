@@ -75,7 +75,9 @@ static int parse1(ppacket_t *p, const unsigned char *r, const unsigned char *e) 
 		len <<= 8;
 		len |= *(r++); break;
 	    case 3:
-		len = (e - r); break;
+		if (e - r > 2147483640)
+		    Rf_error("Packet in old format is too big");
+		len = (plen_t) (e - r); break;
 	    }
 	}
 	break;

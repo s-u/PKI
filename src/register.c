@@ -29,7 +29,7 @@ extern SEXP PKI_raw2hex(SEXP sRaw, SEXP sSep, SEXP sUpp);
 extern SEXP PKI_parse_pgp_key(SEXP sWhat, SEXP sRaw);
 extern SEXP PKI_PEM_split(SEXP sWhat);
 extern SEXP PKI_PEM_part(SEXP sWhat, SEXP sBody, SEXP sDecode);
-extern SEXP PKI_engine_info();
+extern SEXP PKI_engine_info(void);
 
 static const R_CallMethodDef CallEntries[] = {
     {"PKI_RSAkeygen",        (DL_FUNC) &PKI_RSAkeygen,        1},

@@ -17,7 +17,7 @@
 	 as an option. */
 
 /* from init.c */
-void PKI_init();
+void PKI_init(void);
 
 /* OpenSSL 1.1 has changed APIs - adapt accordingly */
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -240,7 +240,7 @@ static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transie
 	Rf_error("invalid key object");
     else {
 	const char *cipher, *c_key, *c_iv = 0;
-	int key_len;
+	size_t key_len;
 	const EVP_CIPHER *type;
 	if (TYPEOF(sCipher) != STRSXP || LENGTH(sCipher) != 1)
 	    Rf_error("non-RSA key and no cipher is specified");
@@ -301,15 +301,15 @@ static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transie
 	    if (LENGTH(sIV) != 1)
 		Rf_error("invalid IV - if used must be a string (or raw), but is string vector of length %d", (int) LENGTH(sIV));
 	    c_iv = CHAR(STRING_ELT(sIV, 0));
-	    int req_len = EVP_CIPHER_iv_length(type);
-	    int iv_len = strlen(c_iv);
+	    size_t req_len = (size_t) EVP_CIPHER_iv_length(type);
+	    size_t iv_len = strlen(c_iv);
 	    if (iv_len < req_len)
-		Rf_error("insufficient IV - must be %d bytes long", req_len);
+		Rf_error("insufficient IV - must be %u bytes long", (unsigned int) req_len);
 	} else if (TYPEOF(sIV) == RAWSXP) {
 	    c_iv = (const char *) RAW(sIV);
-	    int req_len = EVP_CIPHER_iv_length(type);
-	    if (LENGTH(sIV) < req_len)
-		Rf_error("insufficient IV - must be %d bytes long", req_len);
+	    size_t req_len = (size_t) EVP_CIPHER_iv_length(type);
+	    if (((size_t) LENGTH(sIV)) < req_len)
+		Rf_error("insufficient IV - must be %u bytes long", (unsigned int) req_len);
 	} else if (sIV != R_NilValue)
 	    Rf_error("invalid IV - must be NULL (no/empty IV), a string or a raw vector of sufficient length for the cipher");
 
@@ -318,10 +318,11 @@ static EVP_CIPHER_CTX *get_cipher(SEXP sKey, SEXP sCipher, int enc, int *transie
 	    key_len = strlen(c_key);
 	} else {
 	    c_key = (const char*) RAW(sKey);
-	    key_len = LENGTH(sKey);
+	    key_len = (size_t) LENGTH(sKey);
 	}
-	if (key_len < EVP_CIPHER_key_length(type))
-	    Rf_error("key is too short (%d bytes) for the cipher - need %d bytes", key_len, EVP_CIPHER_key_length(type));
+	if (key_len < (size_t) EVP_CIPHER_key_length(type))
+	    Rf_error("key is too short (%u bytes) for the cipher - need %d bytes",
+		     (unsigned int) key_len, (int) EVP_CIPHER_key_length(type));
 	ctx = EVP_CIPHER_CTX_new();
 	if (!ctx)
 	    Rf_error("cannot allocate memory for cipher");
@@ -460,13 +461,14 @@ SEXP PKI_decrypt(SEXP what, SEXP sKey, SEXP sCipher, SEXP sIV) {
 SEXP PKI_digest(SEXP sWhat, SEXP sMD) {
     SEXP res;
     unsigned char hash[32]; /* really, at most 20 bytes are needed */
-    int len, md = asInteger(sMD);
+    size_t len, what_len;
+    int md = asInteger(sMD);
     const unsigned char *what;
-    int what_len;
+
     PKI_init();
     if (TYPEOF(sWhat) == RAWSXP) {
 	what = (const unsigned char*) RAW(sWhat);
-	what_len = LENGTH(sWhat);
+	what_len = (size_t) XLENGTH(sWhat);
     } else if (TYPEOF(sWhat) == STRSXP) {
 	if (LENGTH(sWhat) < 1) return allocVector(RAWSXP, 0); /* good? */
 	what = (const unsigned char*) CHAR(STRING_ELT(sWhat, 0));
@@ -479,9 +481,9 @@ SEXP PKI_digest(SEXP sWhat, SEXP sMD) {
 	len = SHA_DIGEST_LENGTH;
 	break;
     case PKI_SHA256:
-  SHA256(what, what_len, hash);
-  len = SHA256_DIGEST_LENGTH;
-  break;
+	SHA256(what, what_len, hash);
+	len = SHA256_DIGEST_LENGTH;
+	break;
     case PKI_MD5:
 	MD5(what, what_len, hash);
 	len = MD5_DIGEST_LENGTH;
@@ -743,12 +745,12 @@ SEXP PKI_get_subject(SEXP sCert) {
 	Rf_error("X509_NAME_print_ex failed with %s", ERR_error_string(ERR_get_error(), NULL));
     }
     len = BIO_get_mem_data(mem, &txt);
-    if (len < 0) {
+    if (len < 0 || len > 2147483646) {
 	BIO_free(mem);
 	Rf_error("cannot get memory buffer, %s", ERR_error_string(ERR_get_error(), NULL));
     }
     res = PROTECT(allocVector(STRSXP, 1));
-    SET_STRING_ELT(res, 0, mkCharLenCE(txt, len, CE_UTF8));
+    SET_STRING_ELT(res, 0, mkCharLenCE(txt, (int) len, CE_UTF8));
     UNPROTECT(1);
     BIO_free(mem);
     return res;
@@ -815,7 +817,7 @@ SEXP PKI_get_cert_info(SEXP sCert) {
 /* NOTE: we are intentionally not using macros since thay may not match the
          actual run-time version. The only exception is OPENSSL_VERSION_TEXT
 	 where we have no other choice */
-SEXP PKI_engine_info() {
+SEXP PKI_engine_info(void) {
     char sver[48];
     const char *names[] = { "engine", "version", "description", "" };
     SEXP res = PROTECT(mkNamed(VECSXP, names));

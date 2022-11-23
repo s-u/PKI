@@ -101,14 +101,14 @@ static unsigned char *encode_ASN1_bytes(unsigned char *d, unsigned int max_len, 
 	    len++;
 	}
 	if (len < 128)
-	    d[i++] = len;
+	    d[i++] = (unsigned char) len;
 	else {
-	    int nb = 0, l0 = len, nb0;
+	    unsigned int nb = 0, l0 = len, nb0;
 	    while (l0) {
 		l0 >>= 8;
 		nb++;
 	    }
-	    d[i++] = nb + 128;
+	    d[i++] = (unsigned char) (nb + 128);
 	    nb0 = nb;
 	    l0 = len;
 	    while (nb) {
@@ -137,10 +137,10 @@ static unsigned char *encode_ASN1_bytes(unsigned char *d, unsigned int max_len, 
 	    i += en - e;
 	    e = en;
 	}
-	len = e - (d + i0 + 6);
+	len = (unsigned int) (e - (d + i0 + 6));
 	shift_by = 4;
 	if (len < 128)
-	    d[i0 + 1] = len;
+	    d[i0 + 1] = (unsigned char) len;
 	else {
 	    unsigned int l0 = len, nb = 0;
 	    while (l0) {
@@ -148,7 +148,7 @@ static unsigned char *encode_ASN1_bytes(unsigned char *d, unsigned int max_len, 
 		nb++;
 	    }
 	    e = d + i0 + 1;
-	    *(e++) = nb + 128;
+	    *(e++) = (unsigned char) (nb + 128);
 	    l0 = len;
 	    while (l0) {
 		e[--nb] = (unsigned char) l0;
@@ -213,7 +213,7 @@ SEXP PKI_int2oid(SEXP sVal) {
     v = (const unsigned int*) INTEGER(sVal);
     n = LENGTH(sVal);
     if (n < 3) Rf_error("Invalid OID");
-    *(dst++) = v[0] * 40 + v[1];
+    *(dst++) = (unsigned char)(v[0] * 40 + v[1]);
     while (i < n && dst < e) {
 	unsigned int x = v[i++];
 	if (x > 127) { /* since we have only 32-bits that measn at most 5 encoded bytes */
@@ -225,7 +225,7 @@ SEXP PKI_int2oid(SEXP sVal) {
 	    while (r > rev)
 		*(dst++) = *(--r);
 	    dst[-1] &= 0x7f; /* clear the last MSB */
-	} else *(dst++) = x;
+	} else *(dst++) = (unsigned char) x;
     }
     res = Rf_allocVector(RAWSXP, dst - buf);
     memcpy(RAW(res), buf, LENGTH(res));
@@ -277,7 +277,7 @@ static SEXP long2bignum(unsigned long v) {
     SEXP res;
     if (v < 128) {
 	SEXP res = allocVector(RAWSXP, 1);
-	RAW(res)[0] = v;
+	RAW(res)[0] = (unsigned char) v;
 	return res;
     }
     while (v) {

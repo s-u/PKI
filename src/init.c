@@ -10,7 +10,7 @@ static OSSL_PROVIDER *legacy_provider = NULL;
 static OSSL_PROVIDER *default_provider = NULL;
 #endif
 
-void PKI_init() {
+void PKI_init(void) {
     if (ssl_needs_init) {
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 	SSL_library_init();

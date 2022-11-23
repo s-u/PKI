@@ -7,7 +7,8 @@ static const char hex1[] = "0123456789abcdef";
 static const char hex2[] = "0123456789ABCDEF";
 
 SEXP PKI_raw2hex(SEXP sRaw, SEXP sSep, SEXP sUpp) {
-    int upp = asInteger(sUpp) == 1, n, i, sl;
+    int upp = asInteger(sUpp) == 1;
+    size_t n, i, sl;
     const char *sep = 0;
     char *buf, *bp;
     unsigned char *data;
@@ -22,7 +23,7 @@ SEXP PKI_raw2hex(SEXP sRaw, SEXP sSep, SEXP sUpp) {
 	sep = CHAR(STRING_ELT(sSep, 0));
     } else if (sSep != R_NilValue)
 	Rf_error("sep must be a single string");
-    n = LENGTH(sRaw);
+    n = (size_t) XLENGTH(sRaw);
     data = (unsigned char *) RAW(sRaw);
     if (!sep) {
 	res = allocVector(STRSXP, n);
@@ -37,7 +38,7 @@ SEXP PKI_raw2hex(SEXP sRaw, SEXP sSep, SEXP sUpp) {
 	UNPROTECT(1);
 	return res;
     }
-    sl = strlen(sep);
+    sl = (size_t) strlen(sep);
     if (n * (2 + sl)  + 1 > sizeof(buf)) {
 	tmp = PROTECT(allocVector(RAWSXP, n * (2 + sl) + 2));
 	buf = (char*) RAW(tmp);
