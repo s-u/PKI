@@ -1,5 +1,10 @@
 NEWS for PKI package
 
+0.1-12
+    o	minor cleanup of casts to avoid spurious warnings
+
+    o	add support for large vector digests
+
 0.1-11
     o	add PKI.info() which returns information about the
 	underlying engine.
