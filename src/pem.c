@@ -263,8 +263,11 @@ SEXP PKI_PEM_part(SEXP sWhat, SEXP sBody, SEXP sDecode) {
 		res = Rf_allocVector(RAWSXP, dsize);
 		if (dsize > 0) {
 		    /* this should never fail since we determined the size ahead of time ... */
-		    if (base64decode(c, se - c, RAW(res), XLENGTH(res)) != XLENGTH(res))
+		    if (base64decode(c, se - c, RAW(res), XLENGTH(res)) != XLENGTH(res)) {
+			PROTECT(res);
 			Rf_warning("Decoding base64 error, result may be incomplete");
+			UNPROTECT(1);
+		    }
 		}
 	    } else {
 		res = Rf_allocVector(RAWSXP, se - c);
