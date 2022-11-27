@@ -8,6 +8,11 @@
 #endif
 #endif
 
+/* OpenSSL 3.x deprecates a lot - suppress */
+#ifndef OPENSSL_SUPPRESS_DEPRECATED
+#define OPENSSL_SUPPRESS_DEPRECATED 1
+#endif
+
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
