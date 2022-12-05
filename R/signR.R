@@ -19,20 +19,24 @@ tar1 <- function(name, what, mode=0x180) {
 
 chunk <- 4194304L ## 4Mb .. as good as any value ...
 
-PKI.sign.tar <- function(tarfile, key, certificate, output=tarfile) {
+.detect.compression <- function(filename) {
+    con <- file(filename, "rb")
+    on.exit(close(con))
+    magic <- readBin(con, raw(), n = 5)
     io <- file
-    file <- file(tarfile, "rb")
-    on.exit(if (!is.null(file)) close(file))
-    magic <- readBin(file, raw(), n = 3)
     if (all(magic[1:2] == c(31, 139)) || all(magic[1:2] == c(31, 157)))
         io <- gzfile
     else if (all(magic[1:3] == c(0x42, 0x5a, 0x68))) # "BZh"
         io <- bzfile
     else if (all(magic[1:5] == c(0xfd, 0x37, 0x7a, 0x58, 0x5a))) # "\xfd7zXZ"
         io <- xzfile
-    close(file)
-    file <- NULL
+    io
+}
+
+PKI.sign.tar <- function(tarfile, key, certificate, output=tarfile) {
+    io <- .detect.compression(tarfile)
     file <- io(tarfile, "rb")
+    on.exit(if(!is.null(file)) close(file))
     payload <- raw(0)
     while (length(r <- readBin(file, raw(), chunk))) payload <- c(payload, r)
     close(file)
@@ -58,27 +62,18 @@ PKI.sign.tar <- function(tarfile, key, certificate, output=tarfile) {
 }
 
 PKI.verify.tar <- function(tarfile, key, silent = FALSE, enforce.cert = FALSE) {
+    file <- NULL
     if (is.raw(tarfile))
         payload <- tarfile
     else {
-        io <- file
-        file <- file(tarfile, "rb")
-        on.exit(if (!is.null(file)) close(file))
-        magic <- readBin(file, raw(), n = 3)
-        if (all(magic[1:2] == c(31, 139)) || all(magic[1:2] == c(31, 157)))
-          io <- gzfile
-        else if (rawToChar(magic[1:3]) == "BZh") 
-          io <- bzfile
-        else if (rawToChar(magic[1:5]) == "\xfd7zXZ") 
-          io <- xzfile
-        close(file)
-        file <- NULL
+        io <- .detect.compression(tarfile)
         file <- io(tarfile, "rb")
+        on.exit(if(!is.null(file)) close(file))
         payload <- raw(0)
         while (length(r <- readBin(file, raw(), chunk))) payload <- c(payload, r)
         if (length(payload) < 1024L) stop("invalid tar format")
         close(file)
-        file <- NULL              
+        file <- NULL
     }
     fn <- c(charToRaw(".signature"), raw(1))
     i <- length(payload) - 511L
