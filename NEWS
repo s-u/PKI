@@ -1,9 +1,17 @@
 NEWS for PKI package
 
+0.1-13
+    o	fixed PKI.sign.tar() and PKI.verify.tar() mist-detecting
+	tar-balls with xz (lzma) compression. Also the detection
+	no longer fails in UTF-8 locales on systems where R
+	attempts to interpret the magic bytes as UTF-8. (#29)
+
+
 0.1-12
     o	minor cleanup of casts to avoid spurious warnings
 
     o	add support for large vector digests
+
 
 0.1-11
     o	add PKI.info() which returns information about the
