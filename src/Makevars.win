@@ -1,1 +1,5 @@
-PKG_LIBS = -lssl -lcrypto -lws2_32 -lgdi32 -lcrypt32 -lz
+ifeq (,$(shell pkg-config --version 2>/dev/null))
+  PKG_LIBS = -lssl -lcrypto -lws2_32 -lgdi32 -lcrypt32 -lz
+else
+  PKG_LIBS = $(shell pkg-config --libs openssl)
+endif
