@@ -49,7 +49,6 @@ extern unsigned char *CC_SHA256(const void *data, uint32_t len, unsigned char *m
 #define SHA256(D,L,H) CC_SHA256(D, (uint32_t)(L), H)
 #undef MD5
 #define MD5(D,L,H) CC_MD5(D, (uint32_t)(L), H)
-#endif
 #else /* !LP64 */
 #undef SHA1
 #define SHA1(D,L,H) do (1) { if ((L) >= 4294967296L) SHA1(D,L,H) else CC_SHA1(D, (uint32_t)(L), H); break }
@@ -58,4 +57,5 @@ extern unsigned char *CC_SHA256(const void *data, uint32_t len, unsigned char *m
 #undef MD5
 #define MD5 do (1) { if ((L) >= 4294967296L) MD5(D,L,H) else CC_MD5(D, (uint32_t)(L), H); break }
 #endif /* LP64 */
+#endif
 #endif
