@@ -33,7 +33,7 @@ extern OSSL_LIB_CTX *PKI_ossl_ctx;
 #endif
 
 #if __APPLE__
-#if defined MAC_OS_X_VERSION_10_7 && MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
 /* use accelerated crypto on OS X instead of OpenSSL crypto */
 /* We only use the one-shot functions normally declared in CommonCrypto/CommonDigest.h
    to avoid nonsensical warnings */
