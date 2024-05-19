@@ -32,8 +32,7 @@
 extern OSSL_LIB_CTX *PKI_ossl_ctx;
 #endif
 
-#if __APPLE__
-#if defined MAC_OS_X_VERSION_10_7 && MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+#if defined __APPLE__ && defined MAC_OS_X_VERSION_10_7 && MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
 /* use accelerated crypto on OS X instead of OpenSSL crypto */
 /* We only use the one-shot functions normally declared in CommonCrypto/CommonDigest.h
    to avoid nonsensical warnings */
@@ -42,20 +41,19 @@ extern unsigned char *CC_MD5(const void *data, uint32_t len, unsigned char *md);
 extern unsigned char *CC_SHA1(const void *data, uint32_t len, unsigned char *md);
 extern unsigned char *CC_SHA256(const void *data, uint32_t len, unsigned char *md);
 
-#ifndef __LP64__
+#ifndef __LP64__ /* 32-bit - API fully covers it, just cast */
 #undef SHA1
 #define SHA1(D,L,H) CC_SHA1(D, (uint32_t)(L), H)
 #undef SHA256
 #define SHA256(D,L,H) CC_SHA256(D, (uint32_t)(L), H)
 #undef MD5
 #define MD5(D,L,H) CC_MD5(D, (uint32_t)(L), H)
-#endif
-#else /* !LP64 */
+#else /* 64-bit - native API only works on 32-bit lengths */
 #undef SHA1
-#define SHA1(D,L,H) do (1) { if ((L) >= 4294967296L) SHA1(D,L,H) else CC_SHA1(D, (uint32_t)(L), H); break }
+#define SHA1(D,L,H) while (1) { if ((L) >= 4294967296L) SHA1(D,L,H); else CC_SHA1(D, (uint32_t)(L), H); break; }
 #undef SHA256
-#define SHA256 do (1) { if ((L) >= 4294967296L) SHA256(D,L,H) else CC_SHA256(D, (uint32_t)(L), H); break }
+#define SHA256(D,L,H) while (1) { if ((L) >= 4294967296L) SHA256(D,L,H); else CC_SHA256(D, (uint32_t)(L), H); break; }
 #undef MD5
-#define MD5 do (1) { if ((L) >= 4294967296L) MD5(D,L,H) else CC_MD5(D, (uint32_t)(L), H); break }
+#define MD5(D,L,H) while (1) { if ((L) >= 4294967296L) MD5(D,L,H); else CC_MD5(D, (uint32_t)(L), H); break; }
 #endif /* LP64 */
-#endif
+#endif /* OS X 10.7+ */
