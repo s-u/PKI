@@ -430,8 +430,14 @@ SEXP PKI_decrypt(SEXP what, SEXP sKey, SEXP sCipher, SEXP sIV) {
 	}
 	if (EVP_CipherFinal(ctx, RAW(res) + len, &fin))
 	    len += fin;
-	if (len < LENGTH(res))
-	    SETLENGTH(res, len);
+	if (len < LENGTH(res)) {
+	    SEXP res2;
+	    PROTECT(res);
+	    res2 = allocVector(RAWSXP, len);
+	    memcpy(RAW(res2), RAW(res), len);
+	    res = res2;
+	    UNPROTECT(1);
+	}
 	if (transient_cipher) {
 	    EVP_CIPHER_CTX_cleanup(ctx);
 	    free(ctx);

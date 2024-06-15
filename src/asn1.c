@@ -192,8 +192,12 @@ static SEXP bigz2bignum(const unsigned int *bz) {
 	if (c[i]) break;
     if (c[i] > 127) i--;
     if (i > 0) {
-	memmove(c, c + i, LENGTH(res) - i);
-	SETLENGTH(res, LENGTH(res) - i);
+	SEXP res2;
+	PROTECT(res);
+	res2 = allocVector(RAWSXP, LENGTH(res) - i);
+	memcpy(RAW(res2), c + i, LENGTH(res) - i);
+	res = res2;
+	UNPROTECT(1);
     }
     return res;
 }
