@@ -1,5 +1,11 @@
 NEWS for PKI package
 
+0.1-14
+    o	improves fall-back to native crypto routines on macOS (#31)
+
+    o	remove calls to SETLENGTH() and copy defensively.
+
+
 0.1-13
     o	fixed PKI.sign.tar() and PKI.verify.tar() mist-detecting
 	tar-balls with xz (lzma) compression. Also the detection
