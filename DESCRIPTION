@@ -1,7 +1,7 @@
 Package: PKI
 Version: 0.1-15
 Title: Public Key Infrastucture for R Based on the X.509 Standard
-Authors@R: person("Simon", "Urbanek", role=c("aut","cre","cph"), email="Simon.Urbanek@R-project.org", comment=c("https://urbanek.nz", ORCID="0000-0003-2297-1732"))
+Authors@R: person("Simon", "Urbanek", role=c("aut","cre","cph"), email="Simon.Urbanek@r-project.org", comment=c("https://urbanek.nz", ORCID="0000-0003-2297-1732"))
 Maintainer: Simon Urbanek <Simon.Urbanek@r-project.org>
 Depends: R (>= 2.9.0), base64enc
 Enhances: gmp
