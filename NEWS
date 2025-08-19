@@ -3,6 +3,8 @@ NEWS for PKI package
 0.1-15
     o	use pkg-config on Windows if available
 
+    o	update configure and remove a bashism
+
 
 0.1-14
     o	improves fall-back to native crypto routines on macOS (#31)
